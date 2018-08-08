@@ -163,7 +163,7 @@ if not fixed_ecc:
         omegamean = np.double(args.omegamean)
         omegasd = np.double(args.omegasd)
 else:
-    eccmean = args.eccmean
+    eccmean = np.double(args.eccmean)
     omegamean = np.double(args.omegamean)
 # Other inputs:
 n_live_points = int(args.nlive)
