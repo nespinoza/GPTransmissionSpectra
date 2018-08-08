@@ -8,7 +8,24 @@ datafile = 'WASP19/w19_140322.pkl'
 # Define LD laws, comparison stars to use:
 ld_law_white = 'squareroot'
 comps = [0,1,2,3,4,6]
+# Priors to be used. First period and its standard deviation:
+Pmean,Psd = 0.788839316,0.000000017
+# Same for a/Rstar:
+amean,asd =  3.50,0.1
+# Rp/Rs:
+pmean,psd = 0.14,0.01
+# Impact parameter:
+bmean,bsd = 0.6,0.1
+# Time of transit center:
+t0mean,t0sd = 2456739.547178,0.001
+# Define if fixed eccentricity will be used:
+fixed_eccentricity = False
+# Eccentricity and omega. If fixed_eccentricity = True, eccmean and omegamean will be the 
+# fixed parameters for these orbital elements of the orbit:
+eccmean,eccsd = 0.0046,0.0044 
+omegamean,omegasd = 3.0,70.0
 
+######################################
 target,pfilename = datafile.split('/')
 out_folder = 'outputs/'+datafile.split('.')[0]
 
@@ -74,11 +91,15 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     nmin = np.inf
     for i in range(1,len(comps)+1): 
 	if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
-	    os.system('python GPTransitDetrend.py -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
+            if not fixed_eccentricity:
+                ecc_arg = ' --fixed_ecc'
+            else:
+                ecc_arg = ''
+	    os.system('python GPTransitDetrendWL.py -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
 			  '/white-light/comps.dat -lcfile '+out_folder+'/white-light/lc.dat -eparamfile '+out_folder+\
-			  '/eparams.dat -ldlaw '+ld_law_white+' -Pmean 0.788839316 -Psd 0.000000017 -amean 3.50 -asd 0.1 '+\
-			  '-pmean 0.14 -psd 0.01 -bmean 0.6 -bsd 0.1 -t0mean 2456739.547178 -t0sd 0.001 -eccmean 0.0046 '+\
-			  '-eccsd 0.0044 -omegamean 3.0 -omegasd 70.0 --PCA -pctouse '+str(i))
+			  '/eparams.dat -ldlaw '+ld_law_white+' -Pmean '+str(Pmean)+' -Psd '+str(Psd)+' -amean '+str(amean)+' -asd '+str(asd)+' '+\
+			  '-pmean '+str(pmean)+' -psd '+str(psd)+' -bmean '+str(bmean)+' -bsd '+str(bsd)+' -t0mean '+str(t0mean)+' -t0sd '+str(t0sd)+' -eccmean '+str(eccmean)+' '+\
+			  '-eccsd '+str(eccsd)+' -omegamean '+str(omegamean)+' -omegasd '+str(omegasd)+' --PCA -pctouse '+str(i)+ecc_arg)
 	    os.mkdir(out_folder+'/white-light/PCA_'+str(i))
 	    os.system('mv '+out_folder+'/white-light/out* '+out_folder+'/white-light/PCA_'+str(i)+'/.')
 	    os.system('mv '+out_folder+'/white-light/*.pkl '+out_folder+'/white-light/PCA_'+str(i)+'/.')
@@ -126,8 +147,9 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
 	p = np.append(p,posteriors['posterior_samples']['p'][idx_extract])
 	b = np.append(b,posteriors['posterior_samples']['b'][idx_extract])
 	t0 = np.append(t0,posteriors['posterior_samples']['t0'][idx_extract])
-	ecc = np.append(ecc,posteriors['posterior_samples']['ecc'][idx_extract])
-	omega = np.append(omega,posteriors['posterior_samples']['omega'][idx_extract])
+        if not fixed_eccentricity:
+	    ecc = np.append(ecc,posteriors['posterior_samples']['ecc'][idx_extract])
+	    omega = np.append(omega,posteriors['posterior_samples']['omega'][idx_extract])
 	q1 = np.append(q1,posteriors['posterior_samples']['q1'][idx_extract])
 	q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
 	# Note bayesian average posterior jitter saved is in mmag (MultiNest+george sample the log-variance, not the log-sigma):
@@ -152,8 +174,9 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     out['b'] = b
     out['inc'] = np.arccos(b/aR)*180./np.pi
     out['t0'] = t0
-    out['ecc'] = ecc
-    out['omega'] = omega
+    if not fixed_eccentricity:
+        out['ecc'] = ecc 
+        out['omega'] = omega
     out['jitter'] = jitter
     out['q1'] = q1
     out['q2'] = q2

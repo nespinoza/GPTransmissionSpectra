@@ -64,12 +64,13 @@ parser.add_argument('-eccsd', default=None)
 
 # omega:
 parser.add_argument('-omegamean', default=None)
+
 # This reads the standard deviation:
 parser.add_argument('-omegasd', default=None)
 
-# Define if it is a circular fit (ecc = 0, omega = 90)
-parser.add_argument('--circular', dest='circular', action='store_true')
-parser.set_defaults(circular=False)
+# Define if it is a fixed_ecc fit. In this case, ecc = eccmean, omega = omegamean (e.g., if circular, let eccmean = 0, omegamean = 90)
+parser.add_argument('--fixed_ecc', dest='fixed_ecc', action='store_true')
+parser.set_defaults(fixed_ecc=False)
 
 # Define if PCA will be used instead of using comparison stars directly:
 parser.add_argument('--PCA', dest='PCA', action='store_true')
@@ -79,8 +80,8 @@ parser.set_defaults(PCA=True)
 parser.add_argument('-nlive', default=1000)
 args = parser.parse_args()
 
-# Is it a circular fit?
-circular = args.circular
+# Is it a fixed_ecc fit?
+fixed_ecc = args.fixed_ecc
 # Are we going to use PCA?
 PCA = args.PCA
 
@@ -152,7 +153,7 @@ if bmean is not None:
     bmean = np.double(bmean)
     bsd = np.double(args.bsd)
 
-if not circular:
+if not fixed_ecc:
     eccmean = args.eccmean
     omegamean = args.omegamean
     if eccmean is not None:
@@ -161,6 +162,9 @@ if not circular:
     if omegamean is not None:
         omegamean = np.double(args.omegamean)
         omegasd = np.double(args.omegasd)
+else:
+    eccmean = args.eccmean
+    omegamean = np.double(args.omegamean)
 # Other inputs:
 n_live_points = int(args.nlive)
 
@@ -282,7 +286,7 @@ def prior(cube, ndim, nparams):
         cube[pcounter] = utils.transform_uniform(cube[pcounter],0,1.)
         pcounter += 1
 
-    if not circular:
+    if not fixed_ecc:
         if eccmean is None:
             cube[pcounter] = utils.transform_uniform(cube[pcounter],0,1.)
         else:
@@ -321,16 +325,14 @@ def loglike(cube, ndim, nparams):
     else:
         params.u = [q1]
 
-    if not circular:
+    if not fixed_ecc:
         ecc = cube[pcounter] 
         pcounter += 1
         omega = cube[pcounter]
         pcounter += 1
-        ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
     else:
         ecc = 0.0
         omega = 90.
-        ecc_factor = 1.
 
     ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
 
@@ -375,7 +377,7 @@ if compfilename is not None:
     n_params +=  Xc.shape[0]
 if ld_law != 'linear':
     n_params += 1
-if not circular:
+if not fixed_ecc:
     n_params += 2
 
 print 'Number of external parameters:',X.shape[0]
@@ -415,7 +417,7 @@ if not os.path.exists(out_folder+'posteriors_trend_george.pkl'):
         out['posterior_samples']['q2'] = q2
         pcounter += 1
 
-    if not circular:
+    if not fixed_ecc:
         ecc = posterior_samples[:,pcounter]
         out['posterior_samples']['ecc'] = ecc
         pcounter += 1
@@ -463,32 +465,27 @@ if ld_law != 'linear':
 else:
         params.u = [q1]
 
-if not circular:
+if not fixed_ecc:
         ecc = np.median(out['posterior_samples']['ecc'])
         omega = np.median(out['posterior_samples']['omega'])
-        ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
 else:
-        ecc = 0.0
-        omega = 90.
-        ecc_factor = 1.
-
+        ecc = eccmean
+        omega = omegamean
+ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
 inc_inv_factor = (b/a)*ecc_factor
-# Check that b and b/aR are in physically meaningful ranges:
-if b>1.+p or inc_inv_factor >=1.:
-        lcmodel = np.ones(len(t))
-else:
-        # Compute inclination of the orbit:
-        inc = np.arccos(inc_inv_factor)*180./np.pi
 
-        # Evaluate transit model:
-        params.t0 = t0
-        params.per = P
-        params.rp = p
-        params.a = a
-        params.inc = inc
-        params.ecc = ecc
-        params.w = omega
-        lcmodel = m.light_curve(params)
+# Compute inclination of the orbit:
+inc = np.arccos(inc_inv_factor)*180./np.pi
+
+# Evaluate transit model:
+params.t0 = t0
+params.per = P
+params.rp = p
+params.a = a
+params.inc = inc
+params.ecc = ecc
+params.w = omega
+lcmodel = m.light_curve(params)
 
 model = - 2.51*np.log10(lcmodel)
 comp_model = mmean
@@ -502,29 +499,11 @@ gp.set_parameter_vector(gp_vector)
 # Get prediction from GP:
 pred_mean, pred_var = gp.predict(residuals, X.T, return_var=True)
 pred_std = np.sqrt(pred_var)
-
-#if compfilename is not None:
-#    for i in range(Xc.shape[0]):
-#        model = model + cube[pcounter]*Xc[i,:]
-#        pcounter += 1
-
-fout,fout_err = exotoolbox.utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
-#plt.errorbar(tall - int(tall[0]),fout,yerr=fout_err,fmt='.')
+fout,fout_err = utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
 pred_mean_f,fout_err = exotoolbox.utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
-#plt.plot(tall - int(tall[0]),pred_mean_f)
-#plt.show()
 fall = fall - comp_model - pred_mean
-#plt.errorbar(tall,fall,yerr=np.ones(len(tall))*np.sqrt(np.exp(ljitter)),fmt='.')
-#plt.show()
-#plt.errorbar(tall - int(tall[0]),fall,yerr=np.ones(len(tall))*np.sqrt(np.exp(ljitter)),fmt='.')
-#plt.show()
-fout,fout_err = exotoolbox.utils.mag_to_flux(fall,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+fout,fout_err = utils.mag_to_flux(fall,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
 fileout = open('detrended_lc.dat','w')
 for i in range(len(tall)):
     fileout.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f}\n'.format(tall[i],fout[i],fout_err[i],lcmodel[i]))
 fileout.close()
-#plt.errorbar(tall - int(tall[0]),fout,yerr=fout_err,fmt='.')
-#plt.plot(tall - int(tall[0]),lcmodel,'r-')
-#plt.xlabel('Time (BJD - '+str(int(tall[0]))+')')
-#plt.ylabel('Relative flux')
-#plt.show()
