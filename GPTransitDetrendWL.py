@@ -331,8 +331,8 @@ def loglike(cube, ndim, nparams):
         omega = cube[pcounter]
         pcounter += 1
     else:
-        ecc = 0.0
-        omega = 90.
+        ecc = eccmean
+        omega = omegamean
 
     ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
 
