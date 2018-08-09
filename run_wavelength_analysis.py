@@ -7,7 +7,7 @@ import os
 datafile = 'WASP19/w19_140322.pkl' 
 # Define LD law to use, comparison stars to use:
 ld_law = 'linear'
-comps = [0,1,2,3,4,6]
+all_comps = [0,1,2,3,4,6]
 # Fixed parameters to be used. First the period:
 P = 0.788839316
 # Same for a/Rstar:
@@ -26,36 +26,43 @@ pmean,psd = 0.14,0.01
 ######################################
 target,pfilename = datafile.split('/')
 out_folder = 'outputs/'+datafile.split('.')[0]+'/wavelength'
-
+out_ofolder = 'outputs/'+datafile.split('.')[0]
 if not os.path.exists(out_folder):
     os.mkdir(out_folder)
 
 data = pickle.load(open(datafile,'rb'))
-wbins = len(data['wbins'])
-for wi in range(len(wbins)):
+nwbins = len(data['wbins'])
+for wi in range(nwbins):
+    # 0. Chech which comparisons are non-zero in this wavelength bin:
+    comps = []
+    for i in range(len(all_comps)):
+        if np.mean(data['cLCw'][:,all_comps[i],wi]) != 0.:
+            comps.append(all_comps[i])
+
+    # 1. Save (mean-substracted) target and comparison lightcurves (in magnitude-space):
     if not os.path.exists(out_folder+'/wbin'+str(wi)):
         os.mkdir(out_folder+'/wbin'+str(wi))
-        # 1. Save (mean-substracted) target and comparison lightcurves (in magnitude-space):
         lcout = open(out_folder+'/wbin'+str(wi)+'/lc.dat','w')
         lccompout = open(out_folder+'/wbin'+str(wi)+'/comps.dat','w')
         for i in range(len(data['t'])):
             lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][:,wi]))))
             for j in range(len(comps)): 
                 if j != len(comps)-1:
-                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLC'][:,comps[j],wi]))))
+                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][:,comps[j],wi]))))
                 else:
-                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLC'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLC'][:,comps[j],wi]))))
+                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][:,comps[j],wi]))))
         lcout.close()
         lccompout.close() 
 
+    # 2. Run code, BMA the posteriors, save:
     if not os.path.exists(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl'):
 	lnZ = np.zeros(len(comps))
 	nmin = np.inf
 	for i in range(1,len(comps)+1): 
 	    if not os.path.exists(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)):
 		os.system('python GPTransitDetrendWavelength.py -outfolder '+out_folder+'/wbin'+str(wi)+'/ -compfile '+out_folder+\
-			      '/wbin'+str(wi)+'/comps.dat -lcfile '+out_folder+'/wbin'+str(wi)+'/lc.dat -eparamfile '+out_folder+\
-			      '/eparams.dat -ldlaw '+ld_law+' -P '+str(P)+' -a '+str(a)+' -pmean '+str(pmean)+' -psd '+str(psd)+' -bmean '+str(b)+' -t0 '+str(t0)+\
+			      '/wbin'+str(wi)+'/comps.dat -lcfile '+out_folder+'/wbin'+str(wi)+'/lc.dat -eparamfile '+out_ofolder+\
+			      '/eparams.dat -ldlaw '+ld_law+' -P '+str(P)+' -a '+str(a)+' -pmean '+str(pmean)+' -psd '+str(psd)+' -b '+str(b)+' -t0 '+str(t0)+\
                               ' -ecc '+str(ecc)+' -omega '+str(omega)+' --PCA -pctouse '+str(i))
 		os.mkdir(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i))
 		os.system('mv '+out_folder+'/wbin'+str(wi)+'/out* '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
@@ -114,6 +121,7 @@ for wi in range(len(wbins)):
 	# Now save final BMA posteriors:
 	out = {}
 	out['p'] = p
+        out['wbin'] = data['wbins'][wi]
 	out['jitter'] = jitter
 	out['q1'] = q1
         if ld_law != 'linear':
