@@ -1,0 +1,19 @@
+# Folder and file where pickle file is (folder/file.pkl); both 
+# names are important (folder saves the target name, file the 
+# filename):
+datafile:           WASP19/w19_140322.pkl
+# Limb-darkening law to use:
+ld_law:             squareroot
+# Which comparison stars to use. Same ordering as in pickle file:
+comps:              0,1,2,3,4,6
+# Priors (assumed gaussian):
+Pmean,Psd:          0.788839316,0.000000017
+amean,asd:          3.50,0.1
+pmean,psd:          0.14,0.01
+bmean,bsd:          0.6,0.1
+t0mean,t0sd:        2456739.547178,0.001
+# Fix the eccentricity? If True, pass only eccmean and omegamean. 
+# Those will be fixed in the fit.
+fixed_eccentricity: False
+eccmean,eccsd:      0.0046,0.0044 
+omegamean,omegasd:  3.0,70.0

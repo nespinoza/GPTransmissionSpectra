@@ -1,29 +1,21 @@
 import numpy as np
+import argparse
 import utils
 import pickle
 import os
 
-# Define folder/dataset:
-datafile = 'WASP19/w19_140322.pkl' 
-# Define LD laws, comparison stars to use:
-ld_law_white = 'squareroot'
-comps = [0,1,2,3,4,6]
-# Priors to be used. First period and its standard deviation:
-Pmean,Psd = 0.788839316,0.000000017
-# Same for a/Rstar:
-amean,asd =  3.50,0.1
-# Rp/Rs:
-pmean,psd = 0.14,0.01
-# Impact parameter:
-bmean,bsd = 0.6,0.1
-# Time of transit center:
-t0mean,t0sd = 2456739.547178,0.001
-# Define if fixed eccentricity will be used:
-fixed_eccentricity = False
-# Eccentricity and omega. If fixed_eccentricity = True, eccmean and omegamean will be the 
-# fixed parameters for these orbital elements of the orbit:
-eccmean,eccsd = 0.0046,0.0044 
-omegamean,omegasd = 3.0,70.0
+parser = argparse.ArgumentParser()
+
+# This parses in the option file:
+parser.add_argument('-ofile',default=None)
+args = parser.parse_args()
+ofile = args.ofile
+
+# Read input file:
+datafile, ld_law, comps, Pmean, Psd, \
+amean, asd, pmean, psd, bmean, bsd, t0mean,\
+t0sd, fixed_eccentricity, eccmean, eccsd, \
+omegamean, omegasd = utils.read_optfile(ofile)
 
 ######################################
 target,pfilename = datafile.split('/')
@@ -97,7 +89,7 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
                 ecc_arg = ''
 	    os.system('python GPTransitDetrendWL.py -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
 			  '/white-light/comps.dat -lcfile '+out_folder+'/white-light/lc.dat -eparamfile '+out_folder+\
-			  '/eparams.dat -ldlaw '+ld_law_white+' -Pmean '+str(Pmean)+' -Psd '+str(Psd)+' -amean '+str(amean)+' -asd '+str(asd)+' '+\
+			  '/eparams.dat -ldlaw '+ld_law+' -Pmean '+str(Pmean)+' -Psd '+str(Psd)+' -amean '+str(amean)+' -asd '+str(asd)+' '+\
 			  '-pmean '+str(pmean)+' -psd '+str(psd)+' -bmean '+str(bmean)+' -bsd '+str(bsd)+' -t0mean '+str(t0mean)+' -t0sd '+str(t0sd)+' -eccmean '+str(eccmean)+' '+\
 			  '-eccsd '+str(eccsd)+' -omegamean '+str(omegamean)+' -omegasd '+str(omegasd)+' --PCA -pctouse '+str(i)+ecc_arg)
 	    os.mkdir(out_folder+'/white-light/PCA_'+str(i))
