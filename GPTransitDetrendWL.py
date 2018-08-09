@@ -165,6 +165,7 @@ if not fixed_ecc:
 else:
     eccmean = np.double(args.eccmean)
     omegamean = np.double(args.omegamean)
+    print 'Fixed eccentricity and omega:',eccmean,omegamean
 # Other inputs:
 n_live_points = int(args.nlive)
 

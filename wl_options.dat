@@ -1,6 +1,6 @@
 # Folder and file where pickle file is (folder/file.pkl); both 
-# names are important (folder saves the target name, file the 
-# filename):
+# names are important (folder saves the target name; HAS TO BE THE SAME AS THE 
+# TARGET NAME IN THE PICKLE FILE and file the filename):
 datafile:           WASP19/w19_140322.pkl
 # Limb-darkening law to use:
 ld_law:             squareroot

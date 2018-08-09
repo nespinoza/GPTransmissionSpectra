@@ -83,7 +83,8 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     nmin = np.inf
     for i in range(1,len(comps)+1): 
 	if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
-            if not fixed_eccentricity:
+            if fixed_eccentricity:
+                print 'Fixing eccentricity in the fit...'
                 ecc_arg = ' --fixed_ecc'
             else:
                 ecc_arg = ''
