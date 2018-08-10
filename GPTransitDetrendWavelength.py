@@ -97,12 +97,15 @@ compfilename = args.compfile
 if compfilename is not None:
     comps = args.comptouse
     data = np.genfromtxt(compfilename,unpack=True)
-    for i in range(len(data)):
-        x = (data[i] - np.mean(data[i]))/np.sqrt(np.var(data[i]))
-        if i == 0:
-            Xc = x
-        else:
-            Xc = np.vstack((Xc,x))
+    if len(data.shape)>1:
+        for i in range(len(data)):
+            x = (data[i] - np.mean(data[i]))/np.sqrt(np.var(data[i]))
+            if i == 0:
+                Xc = x
+            else:
+                Xc = np.vstack((Xc,x)) 
+    else:
+        Xc = (data - np.mean(data))/np.sqrt(np.var(data))
     if comps != 'all':
         idx_params = np.array(comps.split(',')).astype('int')
         Xc = Xc[idx_params,:]
@@ -150,6 +153,7 @@ gp.compute(X[:,idx].T)
 
 # Extract PCs if user wants to:
 if PCA:
+  if len(Xc.shape) == 2:
     eigenvectors,eigenvalues,PC = utils.classic_PCA(Xc)
     pctouse = args.pctouse
     if pctouse == 'all':
@@ -246,9 +250,13 @@ def prior(cube, ndim, nparams):
 
     # Prior on coefficients of comparison stars:
     if compfilename is not None:
+      if len(Xc.shape) == 2:
         for i in range(Xc.shape[0]):
             cube[pcounter] = utils.transform_uniform(cube[pcounter],-10,10)
             pcounter += 1
+      else:
+        cube[pcounter] = utils.transform_uniform(cube[pcounter],-10,10)
+        pcounter += 1
 
     # Prior on kernel maximum variance; from 0.01 to 100 mmag: 
     cube[pcounter] = utils.transform_loguniform(cube[pcounter],(0.01*1e-3)**2,(100*1e-3)**2)
@@ -299,12 +307,15 @@ def loglike(cube, ndim, nparams):
         params.ecc = ecc
         params.w = omega
         lcmodel = m.light_curve(params)
-
     model = mmean - 2.51*np.log10(lcmodel)
     if compfilename is not None:
+      if len(Xc.shape) == 2:
         for i in range(Xc.shape[0]):
             model = model + cube[pcounter]*Xc[i,idx]
             pcounter += 1
+      else:
+        model = model + cube[pcounter]*Xc[idx]
+        pcounter += 1
     max_var = cube[pcounter]
     pcounter = pcounter + 1
     alphas = np.zeros(X.shape[0])
@@ -320,14 +331,20 @@ def loglike(cube, ndim, nparams):
 #              v neparams   v max variance
 n_params = 4 + X.shape[0] + 1
 if compfilename is not None:
+  if len(Xc.shape) == 2:
     n_params +=  Xc.shape[0]
+  else:
+    n_params += 1
 if ld_law != 'linear':
     n_params += 1
 if not fixed_ecc:
     n_params += 2
 
 print 'Number of external parameters:',X.shape[0]
-print 'Number of comparison stars:',Xc.shape[0]
+if len(Xc.shape) == 2:
+    print 'Number of comparison stars:',Xc.shape[0]
+else:
+    print 'Number of comparison stars: 1'
 print 'Number of counted parameters:',n_params
 out_file = out_folder+'out_multinest_trend_george_'
 
@@ -368,9 +385,14 @@ if not os.path.exists(out_folder+'posteriors_trend_george.pkl'):
 
     xc_coeffs = []
     if compfilename is not None:
+      if len(Xc.shape) == 2:
         for i in range(Xc.shape[0]):
             xc_coeffs.append(posterior_samples[:,pcounter])
             out['posterior_samples']['xc'+str(i)] = posterior_samples[:,pcounter]
+            pcounter += 1
+      else:
+            xc_coeffs.append(posterior_samples[:,pcounter])
+            out['posterior_samples']['xc0'] = posterior_samples[:,pcounter]
             pcounter += 1
     max_var = posterior_samples[:,pcounter]
     out['posterior_samples']['max_var'] = max_var
@@ -429,8 +451,11 @@ lcmodel = m.light_curve(params)
 model = - 2.51*np.log10(lcmodel)
 comp_model = mmean
 if compfilename is not None:
+  if len(Xc.shape) == 2:
     for i in range(Xc.shape[0]):
         comp_model = comp_model + np.median(out['posterior_samples']['xc'+str(i)])*Xc[i,idx]
+  else:
+    comp_model = comp_model + np.median(out['posterior_samples']['xc0'])*Xc[idx] 
 # Evaluate model:     
 residuals = f - model - comp_model
 gp.set_parameter_vector(gp_vector)

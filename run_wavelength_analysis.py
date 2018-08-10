@@ -1,27 +1,21 @@
 import numpy as np
+import argparse
 import utils
 import pickle
 import os
 
-# Define folder/dataset:
-datafile = 'WASP19/w19_140322.pkl' 
-# Define LD law to use, comparison stars to use:
-ld_law = 'linear'
-all_comps = [0,1,2,3,4,6]
-# Fixed parameters to be used. First the period:
-P = 0.788839316
-# Same for a/Rstar:
-a = 3.4681372991
-# Impact parameter:
-b = 0.6777092890 
-# Time of transit center:
-t0 = 2456739.5472350949
-# Eccentricity and omega:
-ecc = 0.0046
-omega = 3.0
+parser = argparse.ArgumentParser()
 
-# Now prior on Rp/Rs:
-pmean,psd = 0.14,0.01
+# This parses in the option file:
+parser.add_argument('-ofile',default=None)
+args = parser.parse_args()
+ofile = args.ofile
+
+# Read input file:
+datafile, ld_law, all_comps, P, Psd, \
+a, asd, pmean, psd, b, bsd, t0,\
+t0sd, fixed_eccentricity, ecc, eccsd, \
+omega, omegasd = utils.read_optfile(ofile)
 
 ######################################
 target,pfilename = datafile.split('/')
@@ -33,6 +27,7 @@ if not os.path.exists(out_folder):
 data = pickle.load(open(datafile,'rb'))
 nwbins = len(data['wbins'])
 for wi in range(nwbins):
+  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
     # 0. Chech which comparisons are non-zero in this wavelength bin:
     comps = []
     for i in range(len(all_comps)):
@@ -54,11 +49,19 @@ for wi in range(nwbins):
         lcout.close()
         lccompout.close() 
 
+for wi in range(nwbins):
+  print 'Working on wbin ',wi,'...'
+  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
+    # 1.5 Count the comps:
+    comps = []
+    for i in range(len(all_comps)):
+        if np.mean(data['cLCw'][:,all_comps[i],wi]) != 0.: 
+            comps.append(all_comps[i])
     # 2. Run code, BMA the posteriors, save:
     if not os.path.exists(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl'):
 	lnZ = np.zeros(len(comps))
 	nmin = np.inf
-	for i in range(1,len(comps)+1): 
+	for i in range(1,len(comps)+1):
 	    if not os.path.exists(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)):
 		os.system('python GPTransitDetrendWavelength.py -outfolder '+out_folder+'/wbin'+str(wi)+'/ -compfile '+out_folder+\
 			      '/wbin'+str(wi)+'/comps.dat -lcfile '+out_folder+'/wbin'+str(wi)+'/lc.dat -eparamfile '+out_ofolder+\
@@ -98,7 +101,7 @@ for wi in range(nwbins):
 	    posteriors = pickle.load(fin)
 	    fin.close()
 	    nextract = int(Pmodels[i-1]*nmin)
-	    idx_extract = np.random.choice(np.arange(len(posteriors['posterior_samples']['P'])),nextract,replace=False)
+	    idx_extract = np.random.choice(np.arange(len(posteriors['posterior_samples']['p'])),nextract,replace=False)
 	    # Extract transit parameters:
 	    p = np.append(p,posteriors['posterior_samples']['p'][idx_extract])
 	    q1 = np.append(q1,posteriors['posterior_samples']['q1'][idx_extract])
@@ -138,9 +141,9 @@ for wi in range(nwbins):
 	fout = open(out_folder+'/wbin'+str(wi)+'/results.dat','w')
 	fout.write('# Variable \t Value \t SigmaUp \t SigmaDown\n')
 	for variable in out.keys():
-	    v,vup,vdown = utils.get_quantiles(out[variable])
-	    print variable
-	    fout.write(variable+' \t {0:.10f} \t {1:.10f} \t {2:.10f}\n'.format(v,vup-v,v-vdown))
+            if variable != 'wbin':
+	        v,vup,vdown = utils.get_quantiles(out[variable])
+	        fout.write(variable+' \t {0:.10f} \t {1:.10f} \t {2:.10f}\n'.format(v,vup-v,v-vdown))
 	fout.close()
     else:
 	out = pickle.load(open(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl','rb'))
