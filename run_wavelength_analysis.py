@@ -12,7 +12,7 @@ args = parser.parse_args()
 ofile = args.ofile
 
 # Read input file:
-datafile, ld_law, all_comps, P, Psd, \
+datafile, ld_law, idx_time, all_comps, P, Psd, \
 a, asd, pmean, psd, b, bsd, t0,\
 t0sd, fixed_eccentricity, ecc, eccsd, \
 omega, omegasd = utils.read_optfile(ofile)
@@ -25,6 +25,8 @@ if not os.path.exists(out_folder):
     os.mkdir(out_folder)
 
 data = pickle.load(open(datafile,'rb'))
+# Generate idx_time, number of bins:
+exec 'idx_time = np.arange(len(data["t"]))'+idx_time
 nwbins = len(data['wbins'])
 for wi in range(nwbins):
   if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
@@ -39,13 +41,13 @@ for wi in range(nwbins):
         os.mkdir(out_folder+'/wbin'+str(wi))
         lcout = open(out_folder+'/wbin'+str(wi)+'/lc.dat','w')
         lccompout = open(out_folder+'/wbin'+str(wi)+'/comps.dat','w')
-        for i in range(len(data['t'])):
-            lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][:,wi]))))
+        for i in idx_time:
+            lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi]))))
             for j in range(len(comps)): 
                 if j != len(comps)-1:
-                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][:,comps[j],wi]))))
+                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,comps[j],wi]))))
                 else:
-                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][:,comps[j],wi]))))
+                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLCw'][i,comps[j],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,comps[j],wi]))))
         lcout.close()
         lccompout.close() 
 

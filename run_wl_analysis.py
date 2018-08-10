@@ -12,7 +12,7 @@ args = parser.parse_args()
 ofile = args.ofile
 
 # Read input file:
-datafile, ld_law, comps, Pmean, Psd, \
+datafile, ld_law, idx_time, comps, Pmean, Psd, \
 amean, asd, pmean, psd, bmean, bsd, t0mean,\
 t0sd, fixed_eccentricity, eccmean, eccsd, \
 omegamean, omegasd = utils.read_optfile(ofile)
@@ -20,7 +20,6 @@ omegamean, omegasd = utils.read_optfile(ofile)
 ######################################
 target,pfilename = datafile.split('/')
 out_folder = 'outputs/'+datafile.split('.')[0]
-
 if not os.path.exists('outputs'):
     os.mkdir('outputs')
 
@@ -30,6 +29,8 @@ if not os.path.exists('outputs/'+target):
 if not os.path.exists(out_folder):
     os.mkdir(out_folder)
     data = pickle.load(open(datafile,'rb'))
+    # Generate input idx_time:
+    exec 'idx_time = np.arange(len(data["t"]))'+idx_time
     if not os.path.exists(out_folder+'/white-light'):
         os.mkdir(out_folder+'/white-light')
         # 1. Save external parameters:
@@ -58,7 +59,7 @@ if not os.path.exists(out_folder):
         print 'Saving eparams...'
         # Save external parameters:
         out_eparam.write('#Times \t                 Airmass \t Delta Wav \t FWHM \t        Sky Flux \t      Trace Center \n')
-        for i in range(len(data['t'])):
+        for i in idx_time:
             out_eparam.write('{0:.10f} \t {1:.10f} \t {2:.10f} \t {3:.10f} \t {4:.10f} \t {5:.10f} \n'.format(data['t'][i],\
                               data['Z'][i],data['deltas'][target+'_final'][i],fwhm[i],sky[i],trace[i]))
         out_eparam.close()
@@ -66,13 +67,13 @@ if not os.path.exists(out_folder):
         # 2. Save (mean-substracted) target and comparison lightcurves (in magnitude-space):
         lcout = open(out_folder+'/white-light/lc.dat','w')
         lccompout = open(out_folder+'/white-light/comps.dat','w')
-        for i in range(len(data['t'])):
-            lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLC'][i])-np.median(-2.51*np.log10(data['oLC']))))
+        for i in idx_time:
+            lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLC'][i])-np.median(-2.51*np.log10(data['oLC'][idx_time]))))
             for j in range(len(comps)): 
                 if j != len(comps)-1:
-                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLC'][i,comps[j]]) - np.median(-2.51*np.log10(data['cLC'][:,comps[j]]))))
+                    lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLC'][i,comps[j]]) - np.median(-2.51*np.log10(data['cLC'][idx_time,comps[j]]))))
                 else:
-                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLC'][i,comps[j]]) - np.median(-2.51*np.log10(data['cLC'][:,comps[j]]))))
+                    lccompout.write('{0:.10f}\n'.format(-2.51*np.log10(data['cLC'][i,comps[j]]) - np.median(-2.51*np.log10(data['cLC'][idx_time,comps[j]]))))
         lcout.close()
         lccompout.close() 
 

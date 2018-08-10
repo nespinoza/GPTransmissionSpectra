@@ -4,6 +4,9 @@
 datafile:           WASP19/w19_140322.pkl
 # Limb-darkening law to use:
 ld_law:             linear
+# Time indexes you want for the fit in pythonic-language. If times are in a variable t
+# the times to be fitted will be t[idx_time]
+idx_time:           [:]
 # Which comparison stars to use. Same ordering as in pickle file:
 comps:              0,1,2,3,4,6
 # Priors (assumed gaussian):

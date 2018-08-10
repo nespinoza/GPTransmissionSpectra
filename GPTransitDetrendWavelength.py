@@ -447,7 +447,7 @@ params.inc = inc
 params.ecc = ecc
 params.w = omega
 lcmodel = m.light_curve(params)
-
+print 'lcmodel:',lcmodel
 model = - 2.51*np.log10(lcmodel)
 comp_model = mmean
 if compfilename is not None:
