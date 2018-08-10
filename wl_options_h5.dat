@@ -3,7 +3,7 @@
 # TARGET NAME IN THE PICKLE FILE and file the filename):
 datafile:           HATS5b/h5_141029_tiobins.pkl
 # Limb-darkening law to use:
-ld_law:             quadratic
+ld_law:             squareroot
 # Time indexes you want for the fit in pythonic-language. If times are in a variable t
 # the times to be fitted will be t[idx_time]
 idx_time:           [30:] 

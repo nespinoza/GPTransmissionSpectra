@@ -1,8 +1,47 @@
 from scipy.stats import gamma,norm,beta,truncnorm
 import numpy as np
 
-# TRANSFORMATION OF PRIORS:
+# READ OPTION FILE:
+def read_optfile(fname):
+    fin = open(fname,'r')
+    x = fin.read()
+    data = x.split('\n')
+    out = {}
+    for i in range(len(data)):
+        if data[i] != '':   
+          if data[i][0] != '#': 
+             variable = data[i].split(':')[0].split()[0]
+             if variable.lower() == 'datafile':
+                 out['datafile'] = data[i].split(':')[-1].split()[0]
+             elif variable.lower() == 'ld_law':
+                 out['ld_law'] = data[i].split(':')[-1].split()[0]
+             elif variable.lower() == 'idx_time':
+                 out['idx_time'] = ':'.join(data[i].split(':')[1:]).split()[0]
+             elif variable.lower() == 'fixed_eccentricity':
+                 if data[i].split(':')[-1].split()[0].lower() == 'false':
+                     out['fixed_eccentricity'] = False
+                 else:
+                     out['fixed_eccentricity'] = True
+             elif variable.lower() == 'comps':
+                 vals = data[i].split(':')[-1].split()[0].split(',')
+                 out['comps'] = list(np.array(vals).astype(int))
+             else:
+                 variables = variable.split(',')
+                 if len(variables) == 1:
+                     out[variable] = np.double(data[i].split(':')[-1].split()[0])
+                     out[variable.split('mean')[0]+'sd'] = 0.0
+                 else:
+                     values = data[i].split(':')[-1].split()[0].split(',')
+                     out[variables[0]] = np.double(values[0])
+                     out[variables[1]] = np.double(values[1])
+        else:
+            break
+    return out['datafile'], out['ld_law'], out['idx_time'], out['comps'], out['Pmean'], out['Psd'], \
+    out['amean'], out['asd'], out['pmean'], out['psd'], out['bmean'], out['bsd'], out['t0mean'],\
+    out['t0sd'], out['fixed_eccentricity'], out['eccmean'], out['eccsd'], \
+    out['omegamean'], out['omegasd']
 
+# TRANSFORMATION OF PRIORS:
 def transform_uniform(x,a,b):
     return a + (b-a)*x
 
@@ -25,7 +64,6 @@ def transform_truncated_normal(x,mu,sigma,a=0.,b=1.):
     return truncnorm.ppf(x,ar,br,loc=mu,scale=sigma)
 
 # PCA TOOLS:
-
 def get_sigma(x):
     """
     This function returns the MAD-based standard-deviation.
@@ -64,6 +102,18 @@ def classic_PCA(Input_Data, standarize = True):
     return eigenvectors_rows,eigenvalues,np.dot(eigenvectors_rows,Data)
 
 # Post-processing tools:
+def mag_to_flux(m,merr):
+    """ 
+    Convert magnitude to relative fluxes. 
+    """
+    fluxes = np.zeros(len(m))
+    fluxes_err = np.zeros(len(m))
+    for i in range(len(m)):
+        dist = 10**(-np.random.normal(m[i],merr[i],1000)/2.51)
+        fluxes[i] = np.mean(dist)
+        fluxes_err[i] = np.sqrt(np.var(dist))
+    return fluxes,fluxes_err
+
 def get_quantiles(dist,alpha = 0.68, method = 'median'):
     """ 
     get_quantiles function
