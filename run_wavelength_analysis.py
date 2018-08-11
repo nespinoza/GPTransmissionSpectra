@@ -8,8 +8,11 @@ parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument('-ofile',default=None)
+parser.add_argument('--nopickle', dest='nopickle', action='store_true')
+parser.set_defaults(nopickle=False)
 args = parser.parse_args()
 ofile = args.ofile
+nopickle = args.nopickle
 
 # Read input file:
 datafile, ld_law, idx_time, all_comps, P, Psd, \
@@ -23,13 +26,21 @@ out_folder = 'outputs/'+datafile.split('.')[0]+'/wavelength'
 out_ofolder = 'outputs/'+datafile.split('.')[0]
 if not os.path.exists(out_folder):
     os.mkdir(out_folder)
-
-data = pickle.load(open(datafile,'rb'))
+if not nopickle:
+    data = pickle.load(open(datafile,'rb'))
+else:
+    data = {}
+    t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True)
+    data['t'] = t
+    import glob
+    binfolders = glob.glob(out_folder+'/*') 
+    data['wbins'] = np.arange(len(binfolders))
+    data['oLCw'] = np.random.uniform(1,10,[3,len(binfolders)])
 # Generate idx_time, number of bins:
 exec 'idx_time = np.arange(len(data["t"]))'+idx_time
 nwbins = len(data['wbins'])
 for wi in range(nwbins):
-  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
+  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1 and not nopickle:
     # 0. Chech which comparisons are non-zero in this wavelength bin:
     comps = []
     for i in range(len(all_comps)):
@@ -53,12 +64,15 @@ for wi in range(nwbins):
 
 for wi in range(nwbins):
   print 'Working on wbin ',wi,'...'
-  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
+  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1 and not nopickle:
     # 1.5 Count the comps:
     comps = []
     for i in range(len(all_comps)):
         if np.mean(data['cLCw'][:,all_comps[i],wi]) != 0.: 
             comps.append(all_comps[i])
+  else:
+    comps = all_comps
+  if np.mean(data['oLCw'][:,wi]) != 0. and len(np.where(data['oLCw'][:,wi]<0)[0])<1:
     # 2. Run code, BMA the posteriors, save:
     if not os.path.exists(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl'):
 	lnZ = np.zeros(len(comps))

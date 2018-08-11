@@ -8,8 +8,11 @@ parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument('-ofile',default=None)
+parser.add_argument('--nopickle', dest='nopickle', action='store_true')
+parser.set_defaults(nopickle=False)
 args = parser.parse_args()
 ofile = args.ofile
+nopickle = args.nopickle
 
 # Read input file:
 datafile, ld_law, idx_time, comps, Pmean, Psd, \
@@ -187,7 +190,6 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     fout.write('# Variable \t Value \t SigmaUp \t SigmaDown\n')
     for variable in out.keys():
         v,vup,vdown = utils.get_quantiles(out[variable])
-        print variable
         fout.write(variable+' \t {0:.10f} \t {1:.10f} \t {2:.10f}\n'.format(v,vup-v,v-vdown))
     fout.close()
 else:

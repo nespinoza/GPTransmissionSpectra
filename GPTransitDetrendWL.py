@@ -114,15 +114,19 @@ compfilename = args.compfile
 if compfilename is not None:
     comps = args.comptouse
     data = np.genfromtxt(compfilename,unpack=True)
-    for i in range(len(data)):
-        x = (data[i] - np.mean(data[i]))/np.sqrt(np.var(data[i]))
-        if i == 0:
-            Xc = x
-        else:
-            Xc = np.vstack((Xc,x))
-    if comps != 'all':
-        idx_params = np.array(comps.split(',')).astype('int')
-        Xc = Xc[idx_params,:]
+    if len(data.shape) == 2:
+        for i in range(len(data)):
+            x = (data[i] - np.mean(data[i]))/np.sqrt(np.var(data[i]))
+            if i == 0:
+                Xc = x
+            else:
+                Xc = np.vstack((Xc,x))
+        if comps != 'all':
+            idx_params = np.array(comps.split(',')).astype('int')
+            Xc = Xc[idx_params,:]
+    else:
+        Xc = np.zeros([1,len(data)])
+        Xc[0,:] = data
 
 # Extract limb-darkening law:
 ld_law = args.ldlaw
@@ -181,12 +185,13 @@ gp.compute(X[:,idx].T)
 
 # Extract PCs if user wants to:
 if PCA:
-    eigenvectors,eigenvalues,PC = utils.classic_PCA(Xc)
-    pctouse = args.pctouse
-    if pctouse == 'all':
-        Xc = PC
-    else:
-        Xc = PC[:int(pctouse),:]
+    if Xc.shape[0] != 1:
+        eigenvectors,eigenvalues,PC = utils.classic_PCA(Xc)
+        pctouse = args.pctouse
+        if pctouse == 'all':
+            Xc = PC
+        else:
+            Xc = PC[:int(pctouse),:]
 
 # Define transit-related functions:
 def reverse_ld_coeffs(ld_law, q1, q2):
