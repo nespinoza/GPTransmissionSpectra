@@ -15,11 +15,17 @@ ofile = args.ofile
 nopickle = args.nopickle
 
 # Read input file:
-datafile, ld_law, idx_time, comps, Pmean, Psd, \
-amean, asd, pmean, psd, bmean, bsd, t0mean,\
-t0sd, fixed_eccentricity, eccmean, eccsd, \
-omegamean, omegasd = utils.read_optfile(ofile)
-
+try:
+    datafile, ld_law, idx_time, comps, Pmean, Psd, \
+    amean, asd, pmean, psd, bmean, bsd, t0mean,\
+    t0sd, fixed_eccentricity, eccmean, eccsd, \
+    omegamean, omegasd = utils.read_optfile(ofile)
+    nlive = 1000
+except:
+    nlive, datafile, ld_law, idx_time, comps, Pmean, Psd, \
+    amean, asd, pmean, psd, bmean, bsd, t0mean,\
+    t0sd, fixed_eccentricity, eccmean, eccsd, \
+    omegamean, omegasd = utils.read_optfile(ofile)
 ######################################
 target,pfilename = datafile.split('/')
 out_folder = 'outputs/'+datafile.split('.')[0]
@@ -92,7 +98,7 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
                 ecc_arg = ' --fixed_ecc'
             else:
                 ecc_arg = ''
-	    os.system('python GPTransitDetrendWL.py -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
+	    os.system('python GPTransitDetrendWL.py -nlive '+str(nlive)+' -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
 			  '/white-light/comps.dat -lcfile '+out_folder+'/white-light/lc.dat -eparamfile '+out_folder+\
 			  '/eparams.dat -ldlaw '+ld_law+' -Pmean '+str(Pmean)+' -Psd '+str(Psd)+' -amean '+str(amean)+' -asd '+str(asd)+' '+\
 			  '-pmean '+str(pmean)+' -psd '+str(psd)+' -bmean '+str(bmean)+' -bsd '+str(bsd)+' -t0mean '+str(t0mean)+' -t0sd '+str(t0sd)+' -eccmean '+str(eccmean)+' '+\
@@ -123,12 +129,12 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     q2 = np.array([])
     jitter = np.array([])
     max_GPvariance = np.array([])
-    alpha0 = np.array([])
-    alpha1 = np.array([])
-    alpha2 = np.array([])
-    alpha3 = np.array([])
-    alpha4 = np.array([])
-    alpha5 = np.array([])
+    # Check how many alphas were fitted:
+    acounter = 0
+    for vrs in posteriors['posterior_samples'].keys():
+        if 'alpha' in vrs:
+            exec 'alpha'+str(acounter)+' = np.array([])'
+            acounter = acounter + 1
     mmean = np.array([])
     # With the number at hand, extract draws from the  posteriors with a fraction equal to the posterior probabilities to perform the 
     # model averaging scheme:
@@ -156,12 +162,8 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
 	# Max GP variance:
 	max_GPvariance = np.append(max_GPvariance,posteriors['posterior_samples']['max_var'][idx_extract])
 	# Alphas:
-	alpha0 = np.append(alpha0,posteriors['posterior_samples']['alpha0'][idx_extract])
-	alpha1 = np.append(alpha1,posteriors['posterior_samples']['alpha1'][idx_extract])
-	alpha2 = np.append(alpha2,posteriors['posterior_samples']['alpha2'][idx_extract])
-	alpha3 = np.append(alpha3,posteriors['posterior_samples']['alpha3'][idx_extract])
-	alpha4 = np.append(alpha4,posteriors['posterior_samples']['alpha4'][idx_extract])
-	alpha5 = np.append(alpha5,posteriors['posterior_samples']['alpha5'][idx_extract])
+        for ai in range(acounter):
+	    exec "alpha"+str(ai)+" = np.append(alpha"+str(ai)+",posteriors['posterior_samples']['alpha"+str(ai)+"'][idx_extract])"
 
     # Now save final BMA posteriors:
     out = {}
@@ -179,12 +181,8 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     out['q2'] = q2
     out['mmean'] = mmean
     out['max_var'] = max_GPvariance
-    out['alpha0'] = alpha0
-    out['alpha1'] = alpha1
-    out['alpha2'] = alpha2
-    out['alpha3'] = alpha3
-    out['alpha4'] = alpha4
-    out['alpha5'] = alpha5
+    for ai in range(acounter):
+        exec "out['alpha"+str(ai)+"'] = alpha"+str(ai)
     pickle.dump(out,open(out_folder+'/white-light/BMA_posteriors.pkl','wb'))
     fout = open(out_folder+'/white-light/results.dat','w')
     fout.write('# Variable \t Value \t SigmaUp \t SigmaDown\n')

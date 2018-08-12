@@ -30,7 +30,7 @@ if not nopickle:
     data = pickle.load(open(datafile,'rb'))
 else:
     data = {}
-    t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True)
+    t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True,usecols=(0,1))
     data['t'] = t
     import glob
     binfolders = glob.glob(out_folder+'/*') 
@@ -103,12 +103,12 @@ for wi in range(nwbins):
 	q2 = np.array([])
 	jitter = np.array([])
 	max_GPvariance = np.array([])
-	alpha0 = np.array([])
-	alpha1 = np.array([])
-	alpha2 = np.array([])
-	alpha3 = np.array([])
-	alpha4 = np.array([])
-	alpha5 = np.array([])
+        # Check how many alphas were fitted:
+        acounter = 0
+        for vrs in posteriors['posterior_samples'].keys():
+            if 'alpha' in vrs:
+                exec 'alpha'+str(acounter)+' = np.array([])'
+                acounter = acounter + 1
 	mmean = np.array([])
 	# With the number at hand, extract draws from the  posteriors with a fraction equal to the posterior probabilities to perform the 
 	# model averaging scheme:
@@ -130,12 +130,8 @@ for wi in range(nwbins):
 	    # Max GP variance:
 	    max_GPvariance = np.append(max_GPvariance,posteriors['posterior_samples']['max_var'][idx_extract])
 	    # Alphas:
-	    alpha0 = np.append(alpha0,posteriors['posterior_samples']['alpha0'][idx_extract])
-	    alpha1 = np.append(alpha1,posteriors['posterior_samples']['alpha1'][idx_extract])
-	    alpha2 = np.append(alpha2,posteriors['posterior_samples']['alpha2'][idx_extract])
-	    alpha3 = np.append(alpha3,posteriors['posterior_samples']['alpha3'][idx_extract])
-	    alpha4 = np.append(alpha4,posteriors['posterior_samples']['alpha4'][idx_extract])
-	    alpha5 = np.append(alpha5,posteriors['posterior_samples']['alpha5'][idx_extract])
+            for ai in range(acounter):
+                exec "alpha"+str(ai)+" = np.append(alpha"+str(ai)+",posteriors['posterior_samples']['alpha"+str(ai)+"'][idx_extract])"
 
 	# Now save final BMA posteriors:
 	out = {}
@@ -147,12 +143,8 @@ for wi in range(nwbins):
 	    out['q2'] = q2
 	out['mmean'] = mmean
 	out['max_var'] = max_GPvariance
-	out['alpha0'] = alpha0
-	out['alpha1'] = alpha1
-	out['alpha2'] = alpha2
-	out['alpha3'] = alpha3
-	out['alpha4'] = alpha4
-	out['alpha5'] = alpha5
+        for ai in range(acounter):
+            exec "out['alpha"+str(ai)+"'] = alpha"+str(ai)
 	pickle.dump(out,open(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl','wb'))
 	fout = open(out_folder+'/wbin'+str(wi)+'/results.dat','w')
 	fout.write('# Variable \t Value \t SigmaUp \t SigmaDown\n')
