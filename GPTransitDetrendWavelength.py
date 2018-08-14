@@ -1,5 +1,4 @@
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
-import exotoolbox
 import batman
 import seaborn as sns
 import argparse
@@ -464,7 +463,7 @@ gp.set_parameter_vector(gp_vector)
 pred_mean, pred_var = gp.predict(residuals, X.T, return_var=True)
 pred_std = np.sqrt(pred_var)
 fout,fout_err = utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
-pred_mean_f,fout_err = exotoolbox.utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+pred_mean_f,fout_err = utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
 fall = fall - comp_model - pred_mean
 fout,fout_err = utils.mag_to_flux(fall,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
 fileout = open('detrended_lc.dat','w')
