@@ -36,7 +36,14 @@ lightcurve, third noise on the detrended lightcurve and fourth the best-fit tran
 the limb-darkening parameters and `p=rp/rs` (and, of course, the GP and PCA components of the fit). See the `wavelength_options_w19.dat` file for 
 an example.
 
-6. Run the code by doing `python run_wavelength_analysis.py -ofile yourNEWoptionsfile.dat`.
+6. Run the code by doing either `python run_wavelength_analysis.py -ofile yourNEWoptionsfile.dat` if you want to perform PCA + GP on each wavelength range,
+   or `python run_wavelength_cmc_analysis.py -ofile yourNEWoptionsfile.dat -wofile youroptionsfile.dat` if you want to run Common Mode Correction (CMC) } GP, 
+   where `youroptionsfile.dat` is the same white-light option file created for step 3 above. Here, for the common-mode correction, only the first star in the 
+   list of your `yourNEWoptionsfile.dat` options file will be used; the white-light lightcurve of the target and that comparison star will be divided, the 
+   best-fit transit lightcurve from step 3 and 4 will be divided to that resulting lightcurve, and this will be the common-mode correction signal. This signal, in turn,
+   will be divided to the resulting lightcurve of the division between the target and the same comparison on every wavelength, and this lightcurve will be fitted 
+   directly without the PCA component (but with a zero-point and a GP). 
 
-7. Once it runs, generate the transmission spectrum by running `python compile_transpec.py -ofile yourNEWoptionsfile.dat`. This will be saved in the 
-folder `wavelengths` inside the outputs folder of your target lightcurve.
+7. Once it runs, generate the transmission spectrum by running `python compile_transpec.py -ofile yourNEWoptionsfile.dat` if you did a PCA + GP fit, or add `--CMC` 
+   in case you want to compile the results from the common-mode correction fit. This will be saved in the folder `wavelengths` inside the outputs folder of your 
+   target lightcurve in the case of a PCA + GP fit or `wavelengths_cmc` in the case of a common-mode correction fit.

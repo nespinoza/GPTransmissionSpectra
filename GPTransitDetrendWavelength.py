@@ -56,7 +56,7 @@ parser.add_argument('-omega', default=None)
 
 # Define if PCA will be used instead of using comparison stars directly:
 parser.add_argument('--PCA', dest='PCA', action='store_true')
-parser.set_defaults(PCA=True)
+parser.set_defaults(PCA=False)
 
 # Number of live points:
 parser.add_argument('-nlive', default=1000)
@@ -108,6 +108,10 @@ if compfilename is not None:
     if comps != 'all':
         idx_params = np.array(comps.split(',')).astype('int')
         Xc = Xc[idx_params,:]
+else:
+    # If no compfile given, assume no comparisons are inputted (e.g., a comparison has already been substracted to the data, 
+    # or common-mode correction has been applied):
+    comps = 'nocomps'
 
 # Extract limb-darkening law:
 ld_law = args.ldlaw
@@ -340,12 +344,15 @@ if not fixed_ecc:
     n_params += 2
 
 print 'Number of external parameters:',X.shape[0]
-if len(Xc.shape) == 2:
-    print 'Number of comparison stars:',Xc.shape[0]
+if compfilename is not None:
+    if len(Xc.shape) == 2:
+        print 'Number of comparison stars:',Xc.shape[0]
+    else:
+        print 'Number of comparison stars: 1'
 else:
-    print 'Number of comparison stars: 1'
+    'No comparison stars being fitted/used'
 print 'Number of counted parameters:',n_params
-out_file = out_folder+'out_multinest_trend_george_'
+out_file = out_folder+'out_mnest_'
 
 import pickle
 # If not ran already, run MultiNest, save posterior samples and evidences to pickle file:
