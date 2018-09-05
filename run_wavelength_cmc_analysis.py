@@ -14,6 +14,7 @@ parser.add_argument('--nopickle', dest='nopickle', action='store_true')
 parser.set_defaults(nopickle=False)
 args = parser.parse_args()
 ofile = args.ofile
+wofile = args.wofile
 nopickle = args.nopickle
 
 # Read input file:
@@ -104,7 +105,7 @@ def get_transit_model(t,t0,P,p,a,inc,q1,q2,ld_law):
     return m.light_curve(params)
 
 # Generate white-light lightcurve, substract it from m1lc - c1lc to form the common mode signal:
-posteriors = pickle.load(open('BMA_posteriors.pkl','r'))
+posteriors = pickle.load(open('outputs/'+datafile.split('.')[0]+'/white-light/BMA_posteriors.pkl','r'))
 
 white_light_lcmodel = get_transit_model(t,np.median(posteriors['t0']),np.median(posteriors['P']),np.median(posteriors['p']),\
                                         np.median(posteriors['aR']),np.median(posteriors['inc']),np.median(posteriors['q1']),np.median(posteriors['q2']),ld_laww)
@@ -130,17 +131,17 @@ for wi in range(nwbins):
         for i in idx_time:
             lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi]))))
             lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[i] -
-                                                       (-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi]))))))
+                                                       (-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi])))))
             lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi]))))
         lcout.close()
         lcoutcmc.close()
         lccompout.close() 
 
 for wi in all_wbins:
-  print 'Working on wbin ',wi,'...'
+    print 'Working on wbin ',wi,'...'
     # 1. Run code, BMA the posteriors, save:
     if not os.path.exists(out_folder+'/wbin'+str(wi)+'/BMA_posteriors.pkl'):
-	lnZ = np.zeros(len(comps))
+	lnZ = np.zeros(1)
 	nmin = np.inf
 	for i in range(1,2):
 	    if not os.path.exists(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)):
@@ -176,7 +177,7 @@ for wi in all_wbins:
 	mmean = np.array([])
 	# With the number at hand, extract draws from the  posteriors with a fraction equal to the posterior probabilities to perform the 
 	# model averaging scheme:
-	for i in range(1,len(comps)+1):
+	for i in range(1,2):
 	    fin = open(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/posteriors_trend_george.pkl','r')
 	    posteriors = pickle.load(fin)
 	    fin.close()
