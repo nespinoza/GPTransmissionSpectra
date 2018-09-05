@@ -130,7 +130,7 @@ for wi in range(nwbins):
         lccompout = open(out_folder+'/wbin'+str(wi)+'/comps.dat','w')
         for i in idx_time:
             lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi]))))
-            lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[i] -
+            lcoutcmc.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[i] -
                                                        (-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi])))))
             lccompout.write('{0:.10f} \t'.format(-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi]))))
         lcout.close()
