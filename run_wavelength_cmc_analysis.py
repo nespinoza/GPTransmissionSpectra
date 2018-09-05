@@ -133,7 +133,6 @@ for wi in range(nwbins):
             lcoutcmc.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[i] -
                                                        (-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi])))))
             lccompout.write('{0:.10f} \n'.format(-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi]))))
-        print all_comps[0]
         lcout.close()
         lcoutcmc.close()
         lccompout.close() 

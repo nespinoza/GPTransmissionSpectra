@@ -9,7 +9,11 @@ parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument('-ofile',default=None)
+parser.add_argument('--CMC', dest='CMC', action='store_true')
+parser.set_defaults(CMC=False)
+
 args = parser.parse_args()
+CMC = args.CMC
 ofile = args.ofile
 
 # Read input file:
@@ -20,10 +24,16 @@ omega, omegasd = utils.read_optfile(ofile)
 
 ######################################
 target,pfilename = datafile.split('/')
-out_folder = 'outputs/'+datafile.split('.')[0]+'/wavelength'
+if not CMC:
+    out_folder = 'outputs/'+datafile.split('.')[0]+'/wavelength'
+else:
+    out_folder = 'outputs/'+datafile.split('.')[0]+'/wavelength-cmc'
 out_ofolder = 'outputs/'+datafile.split('.')[0]
 
-fout = open(out_ofolder+'/transpec.dat','w')
+if not CMC:
+    fout = open(out_ofolder+'/transpec.dat','w')
+else:
+    fout = open(out_ofolder+'/transpec_cmc.dat','w')
 fout.write('# Wav (Angstroms) \t Rp/Rs \t Rp/RsErrUp \t Rp/RsErrDown \t Depth (ppm) \t Depthup (ppm) \t DepthDown (ppm)\n')
 wbinlist = glob.glob(out_folder+'/wbin*')
 wis = np.array([])

@@ -45,5 +45,5 @@ an example.
    directly without the PCA component (but with a zero-point and a GP). 
 
 7. Once it runs, generate the transmission spectrum by running `python compile_transpec.py -ofile yourNEWoptionsfile.dat` if you did a PCA + GP fit, or add `--CMC` 
-   in case you want to compile the results from the common-mode correction fit. This will be saved in the folder `wavelengths` inside the outputs folder of your 
-   target lightcurve in the case of a PCA + GP fit or `wavelengths_cmc` in the case of a common-mode correction fit.
+   in case you want to compile the results from the common-mode correction fit. This will be saved as `transpec.dat` inside the outputs folder of your 
+   target lightcurve in the case of a PCA + GP fit or `transpec_cmc.dat` in the case of a common-mode correction fit.
