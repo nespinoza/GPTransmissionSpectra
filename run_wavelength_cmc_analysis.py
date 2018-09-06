@@ -44,6 +44,9 @@ if not os.path.exists(out_folder):
 if not nopickle:
     data = pickle.load(open(datafile,'rb'))
     t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True,usecols=(0,1))
+    t = data['t']
+    idx = np.where(~np.isnan(data['oLC']))[0]
+    m1lc = -2.51*np.log10(data['oLC'])-np.median(-2.51*np.log10(data['oLC'][idx]))
     c1lc = -2.51*np.log10(data['cLC'][:,all_comps[0]])-np.median(-2.51*np.log10(data['cLC'][:,all_comps[0]]))
 else:
     data = {}
