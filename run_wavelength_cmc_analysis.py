@@ -44,7 +44,8 @@ if not os.path.exists(out_folder):
 if not nopickle:
     data = pickle.load(open(datafile,'rb'))
     t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True,usecols=(0,1))
-    c1lc = -2.51*np.log10(data['cLC'][:,all_comps[0]])-np.median(-2.51*np.log10(data['cLC'][:,all_comps[0]]))
+    idxs = utils.ConvertToInt(idx_time, len(data['cLC']))   #since the lc.dat file doesn't have same dimensions of original .pkl file need to make c1lc same length
+    c1lc = -2.51*np.log10(data['cLC'][idxs,all_comps[0]])-np.median(-2.51*np.log10(data['cLC'][idxs,all_comps[0]]))
 else:
     data = {}
     t,m1lc = np.loadtxt('outputs/'+datafile.split('.')[0]+'/white-light/lc.dat',unpack=True,usecols=(0,1))
@@ -106,10 +107,12 @@ def get_transit_model(t,t0,P,p,a,inc,q1,q2,ld_law):
 
 # Generate white-light lightcurve, substract it from m1lc - c1lc to form the common mode signal:
 posteriors = pickle.load(open('outputs/'+datafile.split('.')[0]+'/white-light/BMA_posteriors.pkl','r'))
-
-white_light_lcmodel = get_transit_model(t.astype('float64'),np.median(posteriors['t0']),np.median(posteriors['P']),np.median(posteriors['p']),\
+if ld_law != 'linear':
+    white_light_lcmodel = get_transit_model(t.astype('float64'),np.median(posteriors['t0']),np.median(posteriors['P']),np.median(posteriors['p']),\
                                         np.median(posteriors['aR']),np.median(posteriors['inc']),np.median(posteriors['q1']),np.median(posteriors['q2']),ld_laww)
-
+else:
+    white_light_lcmodel = get_transit_model(t.astype('float64'),np.median(posteriors['t0']),np.median(posteriors['P']),np.median(posteriors['p']),\
+                                        np.median(posteriors['aR']),np.median(posteriors['inc']),np.median(posteriors['q1']),1.0,ld_laww)
 cmc = m1lc - c1lc + 2.51*np.log10(white_light_lcmodel)
 
 # Generate idx_time, number of bins:
@@ -128,9 +131,10 @@ for wi in range(nwbins):
         lcout = open(out_folder+'/wbin'+str(wi)+'/lc.dat','w')
         lcoutcmc = open(out_folder+'/wbin'+str(wi)+'/lc_cmc.dat','w')
         lccompout = open(out_folder+'/wbin'+str(wi)+'/comps.dat','w')
-        for i in idx_time:
+        for IdX in range(len(idx_time)):
+            i = idx_time[IdX]
             lcout.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi]))))
-            lcoutcmc.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[i] -
+            lcoutcmc.write('{0:.10f} {1:.10f} 0\n'.format(data['t'][i],-2.51*np.log10(data['oLCw'][i,wi])-np.median(-2.51*np.log10(data['oLCw'][idx_time,wi])) - cmc[IdX] -
                                                        (-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi])))))
             lccompout.write('{0:.10f} \n'.format(-2.51*np.log10(data['cLCw'][i,all_comps[0],wi]) - np.median(-2.51*np.log10(data['cLCw'][idx_time,all_comps[0],wi]))))
         lcout.close()
@@ -186,8 +190,8 @@ for wi in all_wbins:
 	    # Extract transit parameters:
 	    p = np.append(p,posteriors['posterior_samples']['p'][idx_extract])
 	    q1 = np.append(q1,posteriors['posterior_samples']['q1'][idx_extract])
-            if ld_law != 'linear':
-	        q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
+        if ld_law != 'linear':
+            q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
 	    # Note bayesian average posterior jitter saved is in mmag (MultiNest+george sample the log-variance, not the log-sigma):
 	    jitter = np.append(jitter,np.sqrt(np.exp(posteriors['posterior_samples']['ljitter'][idx_extract])))
 	    # Mean lightcurve in magnitude units:
@@ -204,8 +208,8 @@ for wi in all_wbins:
         out['wbin'] = data['wbins'][wi]
 	out['jitter'] = jitter
 	out['q1'] = q1
-        if ld_law != 'linear':
-	    out['q2'] = q2
+    if ld_law != 'linear':
+        out['q2'] = q2
 	out['mmean'] = mmean
 	out['max_var'] = max_GPvariance
         for ai in range(acounter):

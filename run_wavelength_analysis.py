@@ -121,8 +121,8 @@ for wi in range(nwbins):
 	    # Extract transit parameters:
 	    p = np.append(p,posteriors['posterior_samples']['p'][idx_extract])
 	    q1 = np.append(q1,posteriors['posterior_samples']['q1'][idx_extract])
-            if ld_law != 'linear':
-	        q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
+	    if ld_law != 'linear':
+	    	q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
 	    # Note bayesian average posterior jitter saved is in mmag (MultiNest+george sample the log-variance, not the log-sigma):
 	    jitter = np.append(jitter,np.sqrt(np.exp(posteriors['posterior_samples']['ljitter'][idx_extract])))
 	    # Mean lightcurve in magnitude units:
@@ -139,8 +139,8 @@ for wi in range(nwbins):
         out['wbin'] = data['wbins'][wi]
 	out['jitter'] = jitter
 	out['q1'] = q1
-        if ld_law != 'linear':
-	    out['q2'] = q2
+	if ld_law != 'linear':
+		out['q2'] = q2
 	out['mmean'] = mmean
 	out['max_var'] = max_GPvariance
         for ai in range(acounter):

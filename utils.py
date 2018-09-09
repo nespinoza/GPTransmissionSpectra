@@ -147,3 +147,19 @@ def get_quantiles(dist,alpha = 0.68, method = 'median'):
           param = ordered_dist[med_idx]
           return param,ordered_dist[med_idx+nsamples_at_each_side],\
                  ordered_dist[med_idx-nsamples_at_each_side]
+
+def ConvertToInt(string, length): #Made to use the idx_time parameter
+    #To take out front and back brackets
+    string = string[1:-1]
+    if ':' in string: #means that it's a sliced list so only 2 numbers
+        a = range(length)
+        ColPos = string.index(':')
+        firstNum = string[:ColPos]
+        lastNum = string[ColPos+1:]
+        integer = a[int(firstNum):int(lastNum)]
+    else: #must be a list containing all the integers that are useful
+        number_string = string.split(',')
+        integer = []
+        for s in number_string:
+            integer.append(int(s))
+    return integer

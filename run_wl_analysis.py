@@ -5,6 +5,7 @@ import pickle
 import os
 
 parser = argparse.ArgumentParser()
+Q2exist = True
 
 # This parses in the option file:
 parser.add_argument('-ofile',default=None)
@@ -154,7 +155,11 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
 	    ecc = np.append(ecc,posteriors['posterior_samples']['ecc'][idx_extract])
 	    omega = np.append(omega,posteriors['posterior_samples']['omega'][idx_extract])
 	q1 = np.append(q1,posteriors['posterior_samples']['q1'][idx_extract])
-	q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
+    try:   ### To check for linear LD law, Chima
+        q2 = np.append(q2,posteriors['posterior_samples']['q2'][idx_extract])
+    except:
+        print 'there is no q2, which means linear law must have been used'
+        Q2exist = False
 	# Note bayesian average posterior jitter saved is in mmag (MultiNest+george sample the log-variance, not the log-sigma):
 	jitter = np.append(jitter,np.sqrt(np.exp(posteriors['posterior_samples']['ljitter'][idx_extract])))
 	# Mean lightcurve in magnitude units:
@@ -178,7 +183,8 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
         out['omega'] = omega
     out['jitter'] = jitter
     out['q1'] = q1
-    out['q2'] = q2
+    if Q2exist:       ### To check for linear LD law, Chima
+        out['q2'] = q2
     out['mmean'] = mmean
     out['max_var'] = max_GPvariance
     for ai in range(acounter):
