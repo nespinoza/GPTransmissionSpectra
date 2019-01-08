@@ -10,9 +10,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-ofile',default=None)
 parser.add_argument('--nopickle', dest='nopickle', action='store_true')
 parser.set_defaults(nopickle=False)
+parser.add_argument('--matern', dest='matern', action='store_true')
+parser.set_defaults(matern=False)
 args = parser.parse_args()
 ofile = args.ofile
 nopickle = args.nopickle
+matern = args.matern
 
 # Read input file:
 try:
@@ -92,21 +95,27 @@ if not os.path.exists(out_folder+'/white-light/BMA_posteriors.pkl'):
     lnZ = np.zeros(len(comps))
     nmin = np.inf
     for i in range(1,len(comps)+1): 
-	if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
-            if fixed_eccentricity:
+	#if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
+        if fixed_eccentricity:
                 print 'Fixing eccentricity in the fit...'
                 ecc_arg = ' --fixed_ecc'
-            else:
+        else:
                 ecc_arg = ''
-	    os.system('python GPTransitDetrendWL.py -nlive '+str(nlive)+' -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
+        if matern:
+            matern = '--matern'
+        else:
+            matern = ''
+	os.system('python GPTransitDetrendWL.py -nlive '+str(nlive)+' -outfolder '+out_folder+'/white-light/ -compfile '+out_folder+\
 			  '/white-light/comps.dat -lcfile '+out_folder+'/white-light/lc.dat -eparamfile '+out_folder+\
 			  '/eparams.dat -ldlaw '+ld_law+' -Pmean '+str(Pmean)+' -Psd '+str(Psd)+' -amean '+str(amean)+' -asd '+str(asd)+' '+\
 			  '-pmean '+str(pmean)+' -psd '+str(psd)+' -bmean '+str(bmean)+' -bsd '+str(bsd)+' -t0mean '+str(t0mean)+' -t0sd '+str(t0sd)+' -eccmean '+str(eccmean)+' '+\
-			  '-eccsd '+str(eccsd)+' -omegamean '+str(omegamean)+' -omegasd '+str(omegasd)+' --PCA -pctouse '+str(i)+ecc_arg)
+			  '-eccsd '+str(eccsd)+' -omegamean '+str(omegamean)+' -omegasd '+str(omegasd)+' --PCA -pctouse '+str(i)+ecc_arg+' '+matern)
+        if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
 	    os.mkdir(out_folder+'/white-light/PCA_'+str(i))
 	    os.system('mv '+out_folder+'/white-light/out* '+out_folder+'/white-light/PCA_'+str(i)+'/.')
-	    os.system('mv '+out_folder+'/white-light/*.pkl '+out_folder+'/white-light/PCA_'+str(i)+'/.')
-	    os.system('mv detrended_lc.dat '+out_folder+'/white-light/PCA_'+str(i)+'/.')
+	os.system('mv '+out_folder+'/white-light/*.pkl '+out_folder+'/white-light/PCA_'+str(i)+'/.')
+	os.system('mv detrended_lc.dat '+out_folder+'/white-light/PCA_'+str(i)+'/.')
+        os.system('mv model_lc.dat '+out_folder+'/white-light/PCA_'+str(i)+'/.')
 	fin = open(out_folder+'/white-light/PCA_'+str(i)+'/posteriors_trend_george.pkl','r')
 	posteriors = pickle.load(fin)
 	if len(posteriors['posterior_samples']['p'])<nmin:

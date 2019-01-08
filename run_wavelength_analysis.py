@@ -78,15 +78,16 @@ for wi in range(nwbins):
 	lnZ = np.zeros(len(comps))
 	nmin = np.inf
 	for i in range(1,len(comps)+1):
-	    if not os.path.exists(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)):
-		os.system('python GPTransitDetrendWavelength.py -outfolder '+out_folder+'/wbin'+str(wi)+'/ -compfile '+out_folder+\
+	    os.system('python GPTransitDetrendWavelength.py -outfolder '+out_folder+'/wbin'+str(wi)+'/ -compfile '+out_folder+\
 			      '/wbin'+str(wi)+'/comps.dat -lcfile '+out_folder+'/wbin'+str(wi)+'/lc.dat -eparamfile '+out_ofolder+\
 			      '/eparams.dat -ldlaw '+ld_law+' -P '+str(P)+' -a '+str(a)+' -pmean '+str(pmean)+' -psd '+str(psd)+' -b '+str(b)+' -t0 '+str(t0)+\
                               ' -ecc '+str(ecc)+' -omega '+str(omega)+' --PCA -pctouse '+str(i))
+            if not os.path.exists(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)):
 		os.mkdir(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i))
 		os.system('mv '+out_folder+'/wbin'+str(wi)+'/out* '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
-		os.system('mv '+out_folder+'/wbin'+str(wi)+'/*.pkl '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
-		os.system('mv detrended_lc.dat '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
+	    os.system('mv '+out_folder+'/wbin'+str(wi)+'/*.pkl '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
+	    os.system('mv detrended_lc.dat '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
+            os.system('mv model_lc.dat '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
 	    fin = open(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/posteriors_trend_george.pkl','r')
 	    posteriors = pickle.load(fin)
 	    if len(posteriors['posterior_samples']['p'])<nmin:

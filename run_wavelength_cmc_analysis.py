@@ -155,6 +155,7 @@ for wi in all_wbins:
 		os.system('mv '+out_folder+'/wbin'+str(wi)+'/out* '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
 		os.system('mv '+out_folder+'/wbin'+str(wi)+'/*.pkl '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
 		os.system('mv detrended_lc.dat '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
+                os.system('mv model_lc.dat '+out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/.')
 	    fin = open(out_folder+'/wbin'+str(wi)+'/PCA_'+str(i)+'/posteriors_trend_george.pkl','r')
 	    posteriors = pickle.load(fin)
 	    if len(posteriors['posterior_samples']['p'])<nmin:
