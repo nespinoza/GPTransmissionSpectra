@@ -71,6 +71,10 @@ parser.add_argument('-omegasd', default=None)
 parser.add_argument('--fixed_ecc', dest='fixed_ecc', action='store_true')
 parser.set_defaults(fixed_ecc=False)
 
+# Define kernel. If true, multi-dimensional Matern:
+parser.add_argument('--matern', dest='matern', action='store_true')
+parser.set_defaults(matern=False)
+
 # Define if PCA will be used instead of using comparison stars directly:
 parser.add_argument('--PCA', dest='PCA', action='store_true')
 parser.set_defaults(PCA=True)
@@ -79,8 +83,44 @@ parser.set_defaults(PCA=True)
 parser.add_argument('-nlive', default=1000)
 args = parser.parse_args()
 
+def get_quantiles(dist,alpha = 0.68, method = 'median'):
+    """ 
+    get_quantiles function
+
+    DESCRIPTION
+
+        This function returns, in the default case, the parameter median and the error% 
+        credibility around it. This assumes you give a non-ordered 
+        distribution of parameters.
+
+    OUTPUTS
+
+        Median of the parameter,upper credibility bound, lower credibility bound
+
+    """
+    ordered_dist = dist[np.argsort(dist)]
+    param = 0.0 
+    # Define the number of samples from posterior
+    nsamples = len(dist)
+    nsamples_at_each_side = int(nsamples*(alpha/2.)+1)
+    if(method == 'median'):
+       med_idx = 0 
+       if(nsamples%2 == 0.0): # Number of points is even
+          med_idx_up = int(nsamples/2.)+1
+          med_idx_down = med_idx_up-1
+          param = (ordered_dist[med_idx_up]+ordered_dist[med_idx_down])/2.
+          return param,ordered_dist[med_idx_up+nsamples_at_each_side],\
+                 ordered_dist[med_idx_down-nsamples_at_each_side]
+       else:
+          med_idx = int(nsamples/2.)
+          param = ordered_dist[med_idx]
+          return param,ordered_dist[med_idx+nsamples_at_each_side],\
+                 ordered_dist[med_idx-nsamples_at_each_side]
+
 # Is it a fixed_ecc fit?
 fixed_ecc = args.fixed_ecc
+# Matern?
+matern = args.matern
 # Are we going to use PCA?
 PCA = args.PCA
 
@@ -174,7 +214,10 @@ n_live_points = int(args.nlive)
 
 # Cook the george kernel:
 import george
-kernel = np.var(f)*george.kernels.ExpSquaredKernel(np.ones(X[:,idx].shape[0]),ndim=X[:,idx].shape[0],axes=range(X[:,idx].shape[0]))
+if matern:
+    kernel = np.var(f)*george.kernels.Matern32Kernel(np.ones(X[:,idx].shape[0]),ndim=X[:,idx].shape[0],axes=range(X[:,idx].shape[0]))
+else:
+    kernel = np.var(f)*george.kernels.ExpSquaredKernel(np.ones(X[:,idx].shape[0]),ndim=X[:,idx].shape[0],axes=range(X[:,idx].shape[0]))
 # Cook jitter term
 jitter = george.modeling.ConstantModel(np.log((200.*1e-6)**2.))
 
@@ -344,7 +387,7 @@ def loglike(cube, ndim, nparams):
     inc_inv_factor = (b/a)*ecc_factor
     # Check that b and b/aR are in physically meaningful ranges:
     if b>1.+p or inc_inv_factor >=1.:
-        lcmodel = np.ones(len(t))
+        return -1e101
     else:
         # Compute inclination of the orbit:
         inc = np.arccos(inc_inv_factor)*180./np.pi
@@ -451,64 +494,94 @@ else:
     out = pickle.load(open(out_folder+'posteriors_trend_george.pkl','rb'))
     posterior_samples = out['posterior_samples']['unnamed']
 
-mmean,ljitter = np.median(out['posterior_samples']['mmean']),np.median(out['posterior_samples']['ljitter'])
-max_var = np.median(out['posterior_samples']['max_var'])
-alphas = np.zeros(X.shape[0])
-for i in range(X.shape[0]):
-    alphas[i] = np.median(out['posterior_samples']['alpha'+str(i)])
-gp_vector = np.append(np.append(ljitter,np.log(max_var)),np.log(1./alphas))
+######### NEW EVALUATION METHOD: EXTRACT SAMPLES DIRECTLY FROM THE POSTERIOR DENSITY   ###########
+######### INSTEAD OF EXTRACTING MEDIANS (THIS IS THE CORRECT WAY OF DOING THIS, NESTOR ###########
+######### FROM THE PAST!)                                                              ###########
+nsamples = len(out['posterior_samples']['mmean'])
+idx_samples = np.random.choice(np.arange(len(out['posterior_samples']['mmean'])),nsamples,replace=False)
 
-# Evaluate LC:
-t0, P, p, a, b, q1 = np.median(out['posterior_samples']['t0']),np.median(out['posterior_samples']['P']),\
-                      np.median(out['posterior_samples']['p']),np.median(out['posterior_samples']['a']),np.median(out['posterior_samples']['b']),\
-                      np.median(out['posterior_samples']['q1'])
+detrended_lc = np.zeros([len(tall),nsamples])
+detrended_lc_err = np.zeros([len(tall),nsamples])
+transit_lc = np.zeros([len(tall),nsamples])
+systematic_model_lc = np.zeros([len(tall),nsamples])
 
-if ld_law != 'linear':
-        q2 = np.median(out['posterior_samples']['q1'])
-        coeff1,coeff2 = reverse_ld_coeffs(ld_law,q1,q2)
-        params.u = [coeff1,coeff2]
-else:
-        params.u = [q1]
+counter = 0
+for i in idx_samples:
+   mmean,ljitter,max_var, t0, P, p, a, b, q1 = out['posterior_samples']['mmean'][i],out['posterior_samples']['ljitter'][i],\
+                                                out['posterior_samples']['max_var'][i],out['posterior_samples']['t0'][i],\
+                                                out['posterior_samples']['P'][i],out['posterior_samples']['p'][i],out['posterior_samples']['a'][i],\
+                                                out['posterior_samples']['b'][i],out['posterior_samples']['q1'][i]
 
-if not fixed_ecc:
-        ecc = np.median(out['posterior_samples']['ecc'])
-        omega = np.median(out['posterior_samples']['omega'])
-else:
-        ecc = eccmean
-        omega = omegamean
-ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
-inc_inv_factor = (b/a)*ecc_factor
+   if ld_law != 'linear':
+       q2 = out['posterior_samples']['q2'][i]
+       coeff1,coeff2 = reverse_ld_coeffs(ld_law,q1,q2)
+       params.u = [coeff1,coeff2]
+   else:
+       params.u = [q1]
+   alphas = np.zeros(X.shape[0])
+   for j in range(X.shape[0]):
+       alphas[j] = out['posterior_samples']['alpha'+str(j)][i]
 
-# Compute inclination of the orbit:
-inc = np.arccos(inc_inv_factor)*180./np.pi
+   if not fixed_ecc:
+       ecc = out['posterior_samples']['ecc'][i]
+       omega = out['posterior_samples']['omega'][i]
+   else:
+       ecc = eccmean
+       omega = omegamean
+ 
+   ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
+   inc_inv_factor = (b/a)*ecc_factor
+   inc = np.arccos(inc_inv_factor)*180./np.pi
 
-# Evaluate transit model:
-params.t0 = t0
-params.per = P
-params.rp = p
-params.a = a
-params.inc = inc
-params.ecc = ecc
-params.w = omega
-lcmodel = m.light_curve(params)
+   params.t0 = t0
+   params.per = P
+   params.rp = p
+   params.a = a 
+   params.inc = inc
+   params.ecc = ecc
+   params.w = omega
 
-model = - 2.51*np.log10(lcmodel)
-comp_model = mmean
-if compfilename is not None:
-    for i in range(Xc.shape[0]):
-        comp_model = comp_model + np.median(out['posterior_samples']['xc'+str(i)])*Xc[i,idx]
-# Evaluate model:     
-residuals = f - model - comp_model
-gp.set_parameter_vector(gp_vector)
+   lcmodel = m.light_curve(params)
 
-# Get prediction from GP:
-pred_mean, pred_var = gp.predict(residuals, X.T, return_var=True)
-pred_std = np.sqrt(pred_var)
-fout,fout_err = utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
-pred_mean_f,fout_err = utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
-fall = fall - comp_model - pred_mean
-fout,fout_err = utils.mag_to_flux(fall,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+   model = - 2.51*np.log10(lcmodel)
+   comp_model = mmean 
+   if compfilename is not None:
+       for j in range(Xc.shape[0]):
+           comp_model = comp_model + out['posterior_samples']['xc'+str(j)][i]*Xc[j,idx]
+
+   # Evaluate model:  
+   residuals = f - (model + comp_model)
+   gp_vector = np.append(np.append(ljitter,np.log(max_var)),np.log(1./alphas))
+   gp.set_parameter_vector(gp_vector)
+
+   pred_mean, pred_var = gp.predict(residuals, X.T, return_var=True)
+   #fout,fout_err = utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+   #pred_mean_f,fout_err = utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+
+   detrended_lc[:,counter] = f - (comp_model + pred_mean)
+   detrended_lc_err[:,counter] = np.sqrt(np.ones(len(f))*np.exp(ljitter))
+   transit_lc[:,counter] = lcmodel
+   systematic_model_lc[:,counter] = pred_mean + comp_model
+
+   counter = counter + 1
+
+##################################################################################################
+
 fileout = open('detrended_lc.dat','w')
-for i in range(len(tall)):
-    fileout.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f}\n'.format(tall[i],fout[i],fout_err[i],lcmodel[i]))
+file_model_out = open('model_lc.dat','w')
+fileout.write('# Time   DetFlux   DetFluxErr   Model\n')
+file_model_out.write('# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n')
+for i in range(detrended_lc.shape[0]):
+    val = np.median(detrended_lc[i,:])
+    val_err = np.median(detrended_lc_err[i,:])
+    dist = 10**(-np.random.normal(val,val_err,1000)/2.51)
+    val,val_err = np.median(dist),np.sqrt(np.var(dist))
+    mval = np.median(transit_lc[i,:])
+    fileout.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f}\n'.format(tall[i],val,val_err,mval))
+    val,valup,valdown = get_quantiles(systematic_model_lc[i,:])
+    val95,valup95,valdown95 = get_quantiles(systematic_model_lc[i,:],alpha=0.95)
+    file_model_out.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f} {4:.10f} {5:.10f} {6:.10f}\n'.format(tall[i],f[i],val,valup,valdown,valup95,valdown95))
+
+print 'Saved!'
 fileout.close()
+file_model_out.close()

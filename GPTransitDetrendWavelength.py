@@ -82,6 +82,41 @@ t,f = tall[idx],fall[idx]
 eparamfilename = args.eparamfile
 eparams = args.eparamtouse
 data = np.genfromtxt(eparamfilename,unpack=True)
+
+def get_quantiles(dist,alpha = 0.68, method = 'median'):
+    """ 
+    get_quantiles function
+
+    DESCRIPTION
+
+        This function returns, in the default case, the parameter median and the error% 
+        credibility around it. This assumes you give a non-ordered 
+        distribution of parameters.
+
+    OUTPUTS
+
+        Median of the parameter,upper credibility bound, lower credibility bound
+
+    """
+    ordered_dist = dist[np.argsort(dist)]
+    param = 0.0 
+    # Define the number of samples from posterior
+    nsamples = len(dist)
+    nsamples_at_each_side = int(nsamples*(alpha/2.)+1)
+    if(method == 'median'):
+       med_idx = 0 
+       if(nsamples%2 == 0.0): # Number of points is even
+          med_idx_up = int(nsamples/2.)+1
+          med_idx_down = med_idx_up-1
+          param = (ordered_dist[med_idx_up]+ordered_dist[med_idx_down])/2.
+          return param,ordered_dist[med_idx_up+nsamples_at_each_side],\
+                 ordered_dist[med_idx_down-nsamples_at_each_side]
+       else:
+          med_idx = int(nsamples/2.)
+          param = ordered_dist[med_idx]
+          return param,ordered_dist[med_idx+nsamples_at_each_side],\
+                 ordered_dist[med_idx-nsamples_at_each_side]
+
 for i in range(len(data)):
     x = (data[i] - np.mean(data[i]))/np.sqrt(np.var(data[i]))
     if i == 0:
@@ -415,6 +450,101 @@ else:
     out = pickle.load(open(out_folder+'posteriors_trend_george.pkl','rb'))
     posterior_samples = out['posterior_samples']['unnamed']
 
+######### NEW EVALUATION METHOD: EXTRACT SAMPLES DIRECTLY FROM THE POSTERIOR DENSITY   ###########
+######### INSTEAD OF EXTRACTING MEDIANS (THIS IS THE CORRECT WAY OF DOING THIS, NESTOR ###########
+######### FROM THE PAST!)                                                              ###########
+nsamples = len(out['posterior_samples']['mmean'])
+#idx_samples = np.random.choice(np.arange(len(out['posterior_samples']['mmean'])),nsamples,replace=False)
+
+detrended_lc = np.zeros([len(tall),nsamples])
+detrended_lc_err = np.zeros([len(tall),nsamples])
+transit_lc = np.zeros([len(tall),nsamples])
+systematic_model_lc = np.zeros([len(tall),nsamples])
+
+counter = 0
+for i in range(nsamples):
+   mmean,ljitter,max_var, p, q1 = out['posterior_samples']['mmean'][i],out['posterior_samples']['ljitter'][i],\
+                                                out['posterior_samples']['max_var'][i], out['posterior_samples']['p'][i],\
+                                                out['posterior_samples']['q1'][i]
+
+   if ld_law != 'linear':
+       q2 = out['posterior_samples']['q2'][i]
+       coeff1,coeff2 = reverse_ld_coeffs(ld_law,q1,q2)
+       params.u = [coeff1,coeff2]
+   else:
+       params.u = [q1]
+   alphas = np.zeros(X.shape[0])
+   for j in range(X.shape[0]):
+       alphas[j] = out['posterior_samples']['alpha'+str(j)][i]
+
+   if not fixed_ecc:
+       ecc = out['posterior_samples']['ecc'][i]
+       omega = out['posterior_samples']['omega'][i]
+   else:
+       ecc = eccmean
+       omega = omegamean
+
+   ecc_factor = (1. + ecc*np.sin(omega * np.pi/180.))/(1. - ecc**2)
+   inc_inv_factor = (b/a)*ecc_factor
+   inc = np.arccos(inc_inv_factor)*180./np.pi
+
+   params.t0 = t0
+   params.per = P
+   params.rp = p
+   params.a = a
+   params.inc = inc
+   params.ecc = ecc
+   params.w = omega
+
+   lcmodel = m.light_curve(params)
+
+   model = - 2.51*np.log10(lcmodel)
+   comp_model = mmean
+   if compfilename is not None:
+     if len(Xc.shape) == 2:
+       for j in range(Xc.shape[0]):
+           print j,len(out['posterior_samples']['xc'+str(j)]),i,Xc.shape
+           comp_model = comp_model + out['posterior_samples']['xc'+str(j)][i]*Xc[j,idx]
+     else:
+       comp_model = comp_model + out['posterior_samples']['xc0'][i]*Xc[idx] 
+   # Evaluate model:  
+   residuals = f - (model + comp_model)
+   gp_vector = np.append(np.append(ljitter,np.log(max_var)),np.log(1./alphas))
+   gp.set_parameter_vector(gp_vector)
+
+   pred_mean, pred_var = gp.predict(residuals, X.T, return_var=True)
+   #fout,fout_err = utils.mag_to_flux(fall-comp_model,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+   #pred_mean_f,fout_err = utils.mag_to_flux(pred_mean,np.ones(len(tall))*np.sqrt(np.exp(ljitter)))
+
+   detrended_lc[:,counter] = f - (comp_model + pred_mean)
+   detrended_lc_err[:,counter] = np.sqrt(np.ones(len(f))*np.exp(ljitter))
+   transit_lc[:,counter] = lcmodel
+   systematic_model_lc[:,counter] = pred_mean + comp_model
+
+   counter = counter + 1
+
+##################################################################################################
+
+fileout = open('detrended_lc.dat','w')
+file_model_out = open('model_lc.dat','w')
+fileout.write('# Time   DetFlux   DetFluxErr   Model\n')
+file_model_out.write('# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n')
+for i in range(detrended_lc.shape[0]):
+    val = np.median(detrended_lc[i,:])
+    val_err = np.median(detrended_lc_err[i,:])
+    dist = 10**(-np.random.normal(val,val_err,1000)/2.51)
+    val,val_err = np.median(dist),np.sqrt(np.var(dist))
+    mval = np.median(transit_lc[i,:])
+    fileout.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f}\n'.format(tall[i],val,val_err,mval))
+    val,valup,valdown = get_quantiles(systematic_model_lc[i,:])
+    val95,valup95,valdown95 = get_quantiles(systematic_model_lc[i,:],alpha=0.95)
+    file_model_out.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f} {4:.10f} {5:.10f} {6:.10f}\n'.format(tall[i],f[i],val,valup,valdown,valup95,valdown95))
+
+print 'Saved!'
+fileout.close()
+file_model_out.close()
+
+"""
 mmean,ljitter = np.median(out['posterior_samples']['mmean']),np.median(out['posterior_samples']['ljitter'])
 max_var = np.median(out['posterior_samples']['max_var'])
 alphas = np.zeros(X.shape[0])
@@ -477,3 +607,4 @@ fileout = open('detrended_lc.dat','w')
 for i in range(len(tall)):
     fileout.write('{0:.10f} {1:.10f} {2:.10f} {3:.10f}\n'.format(tall[i],fout[i],fout_err[i],lcmodel[i]))
 fileout.close()
+"""
