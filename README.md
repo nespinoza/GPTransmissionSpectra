@@ -9,7 +9,7 @@ or (2) given lightcurves and a set of external parameters. To use it you need:
 - george
 
 The code fits the lightcurve simultaneously using a transit model, the comparison stars using PCA and a gaussian process with a 
-multi-dimensional squared exponential kernel, which takes time, FWHM, airmass, trace position, sky flux, and shift in wavelength of the 
+multi-dimensional squared exponential kernel (or a Matern 3/2; for this, simply run the code adding the flag `--matern`), which takes time, FWHM, airmass, trace position, sky flux, and shift in wavelength of the 
 trace as inputs in the case of output in the tepspec format. If this is not the input format, the user defines which external paraemters 
 to include instead.
 
@@ -48,7 +48,9 @@ To use the code is simple:
    of the best-fit. Inside `white-light` there will also be folders named `PCA_n`, where `n` is the number of PCA components used for each 
    fit (the code tries them all, and then bayesian-model average the results to obtain the `results.dat` file); inside each `PCA_n` folder 
    there will be a `detrended_lc.dat` file with the detrended lightcurves (first column is time, second detrended lightcurve, third noise 
-   on the detrended lightcurve and fourth the best-fit transit model).
+   on the detrended lightcurve and fourth the best-fit transit model) and a `model_lc` with the raw magnitude of the target and the full 
+   systematic model (i.e., the full model minus the transit). Note you can join the data in these two files to generate the full model 
+   fitted to the data.
 
 5. Use the `results.dat` to create an options file for the wavelength-dependant fits, where every parameter of the transit will be fixed 
    except for the limb-darkening parameters and `p=rp/rs` (and, of course, the GP and PCA components of the fit). See the 
@@ -70,4 +72,4 @@ To use the code is simple:
 
 TODO
 ---
-- Add option to try Matern 3/2 instead of a Squared Exponential Kernel (this should be extremely easy to do, but I've been too lazy to do it).
+- Try other kernels?
