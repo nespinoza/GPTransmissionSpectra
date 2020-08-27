@@ -1,0 +1,21 @@
+name: gpts
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - astropy
+  - cmake
+  - gcc_linux-64
+  - george
+  - gfortran_linux-64
+  - gsl
+  - ipython
+  - matplotlib
+  - mpi4py
+  - numpy
+  - pip
+  - python=3.8
+  - scipy
+  - pip:
+    - batman-package
+    - pymultinest
