@@ -17,7 +17,6 @@ ofile = args.ofile
 c = importlib.import_module(ofile)
 datafile = c.datafile
 ld_law = c.ld_law
-idx_time = c.idx_time
 all_comps = c.comps
 P = c.Pmean
 a = c.amean
@@ -57,7 +56,16 @@ else:
 # 0. Save wavelength_options.dat file:
 shutil.copy2(ofile + '.py', out_folder)
 # Generate idx_time, number of bins:
-exec('idx_time = np.arange(len(data["t"]))' + idx_time)
+if hasattr(c, 'idx_time') and hasattr(c, 'bad_idx_time'):
+    raise ValueError("Only idx_time or bad_idx_time can be specified")
+elif hasattr(c, 'idx_time') and not hasattr(c, 'bad_idx_time'):
+    exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
+else:
+    if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
+        bad_idx_time = []
+    else:
+        bad_idx_time = utils._bad_idxs(c.bad_idx_time)
+    idx_time = np.delete(np.arange(len(data['t'])), bad_idx_time)
 nwbins = len(data["wbins"])
 for wi in range(nwbins):
     if (

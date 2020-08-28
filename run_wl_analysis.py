@@ -17,7 +17,6 @@ ofile = args.ofile
 c = importlib.import_module(ofile)
 datafile = c.datafile
 ld_law = c.ld_law
-idx_time = c.idx_time
 comps = c.comps
 Pmean, Psd = c.Pmean, c.Psd
 amean, asd = c.amean, c.asd
@@ -46,11 +45,20 @@ if not os.path.exists(out_folder):
     os.mkdir(out_folder)
     data = pickle.load(open(datafile, "rb"))
     # Generate input idx_time:
-    exec('idx_time = np.arange(len(data["t"]))' + idx_time)
+    if hasattr(c, 'idx_time') and hasattr(c, 'bad_idx_time'):
+        raise ValueError("Only idx_time or bad_idx_time can be specified")
+    elif hasattr(c, 'idx_time') and not hasattr(c, 'bad_idx_time'):
+        exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
+    else:
+        if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
+            bad_idx_time = []
+        else:
+            bad_idx_time = utils._bad_idxs(c.bad_idx_time)
+        idx_time = np.delete(np.arange(len(data['t'])), bad_idx_time)
     if not os.path.exists(out_folder + "/white-light"):
         os.mkdir(out_folder + "/white-light")
         # 0. Save wl_options.dat file:
-        shutil.copy2(ofile + '.py', out_folder+'/white-light') 
+        shutil.copy2(ofile + '.py', out_folder+'/white-light')
         # 1. Save external parameters:
         out_eparam = open(out_folder + "/eparams.dat", "w")
         # Get median of FWHM, background flux, accross all wavelengths, and trace position of zero point.

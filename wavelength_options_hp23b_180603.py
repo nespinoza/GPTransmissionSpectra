@@ -7,7 +7,7 @@ outfold = 'out_c'
 ld_law = 'linear'
 # Time indexes you want to omit for the fit in pythonic-language.
 # If times are in a variable t the times to be fitted will be np.delete(t, bad_idx_time)
-idx_time = '[18:]'
+bad_idx_time = '[0:17]'
 # Which comparison stars to use. Same ordering as in pickle file:
 comps = [1,0]
 # Priors (assumed gaussian) Sada & Ramon-Fox et al. (2016)
