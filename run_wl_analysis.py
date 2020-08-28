@@ -4,6 +4,7 @@ import utils
 import pickle
 import os
 import importlib
+import shutil
 
 parser = argparse.ArgumentParser()
 
@@ -48,6 +49,8 @@ if not os.path.exists(out_folder):
     exec('idx_time = np.arange(len(data["t"]))' + idx_time)
     if not os.path.exists(out_folder + "/white-light"):
         os.mkdir(out_folder + "/white-light")
+        # 0. Save wl_options.dat file:
+        shutil.copy2(ofile + '.py', out_folder+'/white-light') 
         # 1. Save external parameters:
         out_eparam = open(out_folder + "/eparams.dat", "w")
         # Get median of FWHM, background flux, accross all wavelengths, and trace position of zero point.

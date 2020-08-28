@@ -4,6 +4,7 @@ import utils
 import pickle
 import os
 import importlib
+import shutil
 
 parser = argparse.ArgumentParser()
 
@@ -50,6 +51,8 @@ else:
     binfolders = glob.glob(out_folder + "/*")
     data["wbins"] = np.arange(len(binfolders))
     data["oLCw"] = np.random.uniform(1, 10, [3, len(binfolders)])
+# 0. Save wavelength_options.dat file:
+shutil.copy2(ofile + '.py', out_folder)
 # Generate idx_time, number of bins:
 exec('idx_time = np.arange(len(data["t"]))' + idx_time)
 nwbins = len(data["wbins"])
