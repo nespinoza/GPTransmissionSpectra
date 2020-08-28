@@ -53,8 +53,7 @@ parser.add_argument("-ecc", default=None)
 parser.add_argument("-omega", default=None)
 
 # Define if PCA will be used instead of using comparison stars directly:
-parser.add_argument("--PCA", dest="PCA", action="store_true")
-parser.set_defaults(PCA=False)
+parser.add_argument("-PCA", default="False")
 
 # Number of live points:
 parser.add_argument("-nlive", default=1000)
@@ -205,7 +204,7 @@ gp = george.GP(
 gp.compute(X[:, idx].T)
 
 # Extract PCs if user wants to:
-if PCA:
+if PCA == "True":
     if len(Xc.shape) == 2:
         eigenvectors, eigenvalues, PC = utils.classic_PCA(Xc)
         pctouse = args.pctouse

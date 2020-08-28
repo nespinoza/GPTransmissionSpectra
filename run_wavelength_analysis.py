@@ -3,39 +3,31 @@ import argparse
 import utils
 import pickle
 import os
+import importlib
 
 parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument("-ofile", default=None)
-parser.add_argument("--nopickle", dest="nopickle", action="store_true")
-parser.set_defaults(nopickle=False)
 args = parser.parse_args()
 ofile = args.ofile
-nopickle = args.nopickle
 
 # Read input file:
-(
-    datafile,
-    ld_law,
-    idx_time,
-    all_comps,
-    P,
-    Psd,
-    a,
-    asd,
-    pmean,
-    psd,
-    b,
-    bsd,
-    t0,
-    t0sd,
-    fixed_eccentricity,
-    ecc,
-    eccsd,
-    omega,
-    omegasd,
-) = utils.read_optfile(ofile)
+c = importlib.import_module(ofile)
+datafile = c.datafile
+ld_law = c.ld_law
+idx_time = c.idx_time
+all_comps = c.comps
+P = c.Pmean
+a = c.amean
+pmean, psd = c.pmean, c.psd
+b = c.bmean
+t0 = c.t0mean
+fixed_eccentricity = c.fixed_eccentricity
+ecc = c.eccmean
+omega = c.omegamean
+PCA = c.PCA
+nopickle = c.nopickle
 
 ######################################
 target, pfilename = datafile.split("/")
@@ -176,7 +168,9 @@ for wi in range(nwbins):
                     + str(ecc)
                     + " -omega "
                     + str(omega)
-                    + " --PCA -pctouse "
+                    + " -PCA "
+                    + str(PCA)
+                    +" -pctouse "
                     + str(i)
                 )
                 if not os.path.exists(

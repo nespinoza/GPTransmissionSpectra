@@ -3,67 +3,35 @@ import argparse
 import utils
 import pickle
 import os
+import importlib
 
 parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument("-ofile", default=None)
-parser.add_argument("--nopickle", dest="nopickle", action="store_true")
-parser.set_defaults(nopickle=False)
-parser.add_argument("--matern", dest="matern", action="store_true")
-parser.set_defaults(matern=False)
 args = parser.parse_args()
 ofile = args.ofile
-nopickle = args.nopickle
-matern = args.matern
 
 # Read input file:
-try:
-    (
-        datafile,
-        ld_law,
-        idx_time,
-        comps,
-        Pmean,
-        Psd,
-        amean,
-        asd,
-        pmean,
-        psd,
-        bmean,
-        bsd,
-        t0mean,
-        t0sd,
-        fixed_eccentricity,
-        eccmean,
-        eccsd,
-        omegamean,
-        omegasd,
-    ) = utils.read_optfile(ofile)
-    nlive = 1000
-except:
-    (
-        nlive,
-        datafile,
-        ld_law,
-        idx_time,
-        comps,
-        Pmean,
-        Psd,
-        amean,
-        asd,
-        pmean,
-        psd,
-        bmean,
-        bsd,
-        t0mean,
-        t0sd,
-        fixed_eccentricity,
-        eccmean,
-        eccsd,
-        omegamean,
-        omegasd,
-    ) = utils.read_optfile(ofile)
+c = importlib.import_module(ofile)
+datafile = c.datafile
+ld_law = c.ld_law
+idx_time = c.idx_time
+comps = c.comps
+Pmean, Psd = c.Pmean, c.Psd
+amean, asd = c.amean, c.asd
+pmean, psd = c.pmean, c.psd
+bmean, bsd = c.bmean, c.bsd
+t0mean, t0sd = c.t0mean, c.t0sd
+fixed_eccentricity = c.fixed_eccentricity
+eccmean, eccsd = c.eccmean, c.eccsd
+omegamean, omegasd = c.omegamean, c.omegasd
+PCA = c.PCA
+GPkernel = c.GPkernel
+nopickle = c.nopickle
+nlive = c.nlive
+print('Loaded options for:', datafile)
+
 ######################################
 target, pfilename = datafile.split("/")
 out_folder = "outputs/" + datafile.split(".")[0]
@@ -170,12 +138,9 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             ecc_arg = " --fixed_ecc"
         else:
             ecc_arg = ""
-        if matern:
-            matern = "--matern"
-        else:
-            matern = ""
         os.system(
-            "python GPTransitDetrendWL.py -nlive "
+            "python GPTransitDetrendWL.py"
+            + " -nlive "
             + str(nlive)
             + " -outfolder "
             + out_folder
@@ -195,8 +160,7 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + str(amean)
             + " -asd "
             + str(asd)
-            + " "
-            + "-pmean "
+            + " -pmean "
             + str(pmean)
             + " -psd "
             + str(psd)
@@ -210,18 +174,18 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + str(t0sd)
             + " -eccmean "
             + str(eccmean)
-            + " "
-            + "-eccsd "
+            + " -eccsd "
             + str(eccsd)
             + " -omegamean "
             + str(omegamean)
             + " -omegasd "
             + str(omegasd)
-            + " --PCA -pctouse "
+            + " -PCA "
+            + str(PCA)
+            + " -pctouse "
             + str(i)
-            + ecc_arg
-            + " "
-            + matern
+            + " -GPkernel "
+            + str(GPkernel)
         )
         if not os.path.exists(out_folder + "/white-light/PCA_" + str(i)):
             os.mkdir(out_folder + "/white-light/PCA_" + str(i))
