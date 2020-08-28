@@ -22,5 +22,6 @@ fixed_eccentricity = True
 eccmean = 0.0
 omegamean = 90.0
 PCA = True
-nlive = 1000
+GPkernel = "multi_matern"
+nlive = 300
 nopickle = False

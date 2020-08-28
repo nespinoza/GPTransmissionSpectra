@@ -28,7 +28,10 @@ fixed_eccentricity = c.fixed_eccentricity
 ecc = c.eccmean
 omega = c.omegamean
 PCA = c.PCA
+GPkernel = c.GPkernel
 nopickle = c.nopickle
+nlive = c.nlive
+print('Loaded options for:', datafile)
 
 ######################################
 target, pfilename = datafile.split("/")
@@ -139,7 +142,10 @@ for wi in range(nwbins):
             nmin = np.inf
             for i in range(1, len(comps) + 1):
                 os.system(
-                    "python GPTransitDetrendWavelength.py -outfolder "
+                    "python GPTransitDetrendWavelength.py"
+                    + " -nlive "
+                    + str(nlive)
+                    +" -outfolder "
                     + out_folder
                     + "/wbin"
                     + str(wi)
@@ -175,6 +181,8 @@ for wi in range(nwbins):
                     + str(PCA)
                     +" -pctouse "
                     + str(i)
+                    + " -GPkernel "
+                    + str(GPkernel)
                 )
                 if not os.path.exists(
                     out_folder + "/wbin" + str(wi) + "/PCA_" + str(i)

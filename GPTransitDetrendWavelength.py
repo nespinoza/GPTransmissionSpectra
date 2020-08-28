@@ -55,12 +55,20 @@ parser.add_argument("-omega", default=None)
 # Define if PCA will be used instead of using comparison stars directly:
 parser.add_argument("-PCA", default="False")
 
+# Define kernel. If true, multi-dimensional Matern:
+parser.add_argument("-GPkernel", default="multi_sqexp")
+
+# Supported kernels
+KERNELS = ["multi_sqexp", "multi_matern"]
+
 # Number of live points:
 parser.add_argument("-nlive", default=1000)
 args = parser.parse_args()
 
 # Is it a fixed_ecc fit?
 fixed_ecc = True
+# Kernel?
+GPkernel = args.GPkernel
 # Are we going to use PCA?
 PCA = args.PCA
 
@@ -189,11 +197,22 @@ n_live_points = int(args.nlive)
 # Cook the george kernel:
 import george
 
-kernel = np.var(f) * george.kernels.ExpSquaredKernel(
-    np.ones(X[:, idx].shape[0]),
-    ndim=X[:, idx].shape[0],
-    axes=list(range(X[:, idx].shape[0])),
-)
+if GPkernel == "multi_matern":
+    kernel = np.var(f) * george.kernels.Matern32Kernel(
+        np.ones(X[:, idx].shape[0]),
+        ndim=X[:, idx].shape[0],
+        axes=list(range(X[:, idx].shape[0])),
+    )
+elif GPkernel == "multi_sqexp":
+    kernel = np.var(f) * george.kernels.ExpSquaredKernel(
+        np.ones(X[:, idx].shape[0]),
+        ndim=X[:, idx].shape[0],
+        axes=list(range(X[:, idx].shape[0])),
+    )
+else:
+    raise ValueError(
+            f"{GPkernel} is not supported. Please choose from either: {KERNELS}"
+          )
 # Cook jitter term
 jitter = george.modeling.ConstantModel(np.log((200.0 * 1e-6) ** 2.0))
 
