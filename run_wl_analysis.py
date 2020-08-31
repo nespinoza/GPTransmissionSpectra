@@ -30,7 +30,7 @@ PCA = c.PCA
 GPkernel = c.GPkernel
 nopickle = c.nopickle
 nlive = c.nlive
-print('Loaded options for:', datafile)
+print("Loaded options for:", datafile)
 
 ######################################
 target, pfilename = datafile.split("/")
@@ -45,20 +45,20 @@ if not os.path.exists(out_folder):
     os.mkdir(out_folder)
     data = pickle.load(open(datafile, "rb"))
     # Generate input idx_time:
-    if hasattr(c, 'idx_time') and hasattr(c, 'bad_idx_time'):
+    if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
         raise ValueError("Only idx_time or bad_idx_time can be specified")
-    elif hasattr(c, 'idx_time') and not hasattr(c, 'bad_idx_time'):
+    elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
         exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
     else:
         if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
             bad_idx_time = []
         else:
             bad_idx_time = utils._bad_idxs(c.bad_idx_time)
-        idx_time = np.delete(np.arange(len(data['t'])), bad_idx_time)
+        idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
     if not os.path.exists(out_folder + "/white-light"):
         os.mkdir(out_folder + "/white-light")
         # 0. Save wl_options.dat file:
-        shutil.copy2(ofile + '.py', out_folder+'/white-light')
+        shutil.copy2(ofile + ".py", out_folder + "/white-light")
         # 1. Save external parameters:
         out_eparam = open(out_folder + "/eparams.dat", "w")
         # Get median of FWHM, background flux, accross all wavelengths, and trace position of zero point.
@@ -142,61 +142,42 @@ if not os.path.exists(out_folder):
 if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
     lnZ = np.zeros(len(comps))
     nmin = np.inf
+    if fixed_eccentricity:
+        print("Fixing eccentricity in the fit...")
     for i in range(1, len(comps) + 1):
-        # if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
-        if fixed_eccentricity:
-            print("Fixing eccentricity in the fit...")
-        os.system(
+        # Load inputs
+        os_string = (
             "python GPTransitDetrendWL.py"
-            + " -nlive "
-            + str(nlive)
-            + " -outfolder "
-            + out_folder
-            + "/white-light/ -compfile "
-            + out_folder
-            + "/white-light/comps.dat -lcfile "
-            + out_folder
-            + "/white-light/lc.dat -eparamfile "
-            + out_folder
-            + "/eparams.dat -ldlaw "
-            + ld_law
-            + " -Pmean "
-            + str(Pmean)
-            + " -Psd "
-            + str(Psd)
-            + " -amean "
-            + str(amean)
-            + " -asd "
-            + str(asd)
-            + " -pmean "
-            + str(pmean)
-            + " -psd "
-            + str(psd)
-            + " -bmean "
-            + str(bmean)
-            + " -bsd "
-            + str(bsd)
-            + " -t0mean "
-            + str(t0mean)
-            + " -t0sd "
-            + str(t0sd)
-            + " -eccmean "
-            + str(eccmean)
-            + " -eccsd "
-            + str(eccsd)
-            + " -omegamean "
-            + str(omegamean)
-            + " -omegasd "
-            + str(omegasd)
-            + " -PCA "
-            + str(PCA)
-            + " -pctouse "
-            + str(i)
-            + " -GPkernel "
-            + str(GPkernel)
-            + " -fixed_eccentricity "
-            + str(fixed_eccentricity)
+            + f" -nlive {nlive}"
+            + f" -outfolder {out_folder}/white-light/"
+            + f" -compfile {out_folder}/white-light/comps.dat"
+            + f" -lcfile {out_folder}/white-light/lc.dat"
+            + f" -eparamfile {out_folder}/eparams.dat"
+            + f" -ldlaw {ld_law}"
+            + f" -Pmean {Pmean}"
+            + f" -Psd {Psd}"
+            + f" -amean {amean}"
+            + f" -asd {asd}"
+            + f" -pmean {pmean}"
+            + f" -psd {psd}"
+            + f" -bmean {bmean}"
+            + f" -bsd {bsd}"
+            + f" -t0mean {t0mean}"
+            + f" -t0sd {t0sd}"
+            + f" -eccmean {eccmean}"
+            + f" -eccsd {eccsd}"
+            + f" -omegamean {omegamean}"
+            + f" -omegasd {omegasd}"
+            + f" -PCA {PCA}"
+            + f" -GPkernel {GPkernel}"
+            + f" -fixed_eccentricity {fixed_eccentricity}"
+            + f" -pctouse {i}"
         )
+
+        # Run sampler
+        os.system(os_string)
+
+        # Save output
         if not os.path.exists(out_folder + "/white-light/PCA_" + str(i)):
             os.mkdir(out_folder + "/white-light/PCA_" + str(i))
             os.system(
@@ -302,7 +283,9 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             )
         q1 = np.append(q1, posteriors["posterior_samples"]["q1"][idx_extract])
         if ld_law != "linear":
-            q2 = np.append(q2, posteriors["posterior_samples"]["q2"][idx_extract])
+            q2 = np.append(
+                q2, posteriors["posterior_samples"]["q2"][idx_extract]
+            )
         # Note bayesian average posterior jitter saved is in mmag (MultiNest+george sample the log-variance, not the log-sigma):
         jitter = np.append(
             jitter,

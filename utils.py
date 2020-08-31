@@ -7,22 +7,24 @@ def _to_arr(idx_or_slc):
     # or slice to numpy array of ints.
     # This format makes it easier for flattening multiple arrays in `_bad_idxs`
     # NOTE: bounds are inclusive like the good lord intended
-    if ':' in idx_or_slc:
-        lower, upper = map(int, idx_or_slc.split(':'))
-        return np.arange(lower, upper+1)
+    if ":" in idx_or_slc:
+        lower, upper = map(int, idx_or_slc.split(":"))
+        return np.arange(lower, upper + 1)
     else:
         return np.array([int(idx_or_slc)])
 
+
 def _bad_idxs(s):
-    if s == '[]':
+    if s == "[]":
         return []
     else:
         # Merges indices/slices specified in `s` into a single numpy array of
         # indices to omit
-        s = s.strip("[]").split(',')
+        s = s.strip("[]").split(",")
         bad_idxs = list(map(_to_arr, s))
         bad_idxs = np.concatenate(bad_idxs, axis=0)
         return bad_idxs
+
 
 def read_optfile(fname):
     fin = open(fname, "r")

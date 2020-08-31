@@ -88,6 +88,7 @@ pp = pprint.PrettyPrinter(compact=True)
 print("Using following inputs:")
 pp.pprint(vars(args))
 
+
 def get_quantiles(dist, alpha=0.68, method="median"):
     """
     get_quantiles function
@@ -243,8 +244,8 @@ elif GPkernel == "multi_sqexp":
     )
 else:
     raise ValueError(
-            f"{GPkernel} is not supported. Please choose from either: {KERNELS}"
-          )
+        f"{GPkernel} is not supported. Please choose from either: {KERNELS}"
+    )
 # Cook jitter term
 jitter = george.modeling.ConstantModel(np.log((200.0 * 1e-6) ** 2.0))
 

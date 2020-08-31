@@ -211,8 +211,8 @@ elif GPkernel == "multi_sqexp":
     )
 else:
     raise ValueError(
-            f"{GPkernel} is not supported. Please choose from either: {KERNELS}"
-          )
+        f"{GPkernel} is not supported. Please choose from either: {KERNELS}"
+    )
 # Cook jitter term
 jitter = george.modeling.ConstantModel(np.log((200.0 * 1e-6) ** 2.0))
 

@@ -30,7 +30,7 @@ PCA = c.PCA
 GPkernel = c.GPkernel
 nopickle = c.nopickle
 nlive = c.nlive
-print('Loaded options for:', datafile)
+print("Loaded options for:", datafile)
 
 ######################################
 target, pfilename = datafile.split("/")
@@ -54,18 +54,18 @@ else:
     data["wbins"] = np.arange(len(binfolders))
     data["oLCw"] = np.random.uniform(1, 10, [3, len(binfolders)])
 # 0. Save wavelength_options.dat file:
-shutil.copy2(ofile + '.py', out_folder)
+shutil.copy2(ofile + ".py", out_folder)
 # Generate idx_time, number of bins:
-if hasattr(c, 'idx_time') and hasattr(c, 'bad_idx_time'):
+if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
     raise ValueError("Only idx_time or bad_idx_time can be specified")
-elif hasattr(c, 'idx_time') and not hasattr(c, 'bad_idx_time'):
+elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
     exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
 else:
     if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
         bad_idx_time = []
     else:
         bad_idx_time = utils._bad_idxs(c.bad_idx_time)
-    idx_time = np.delete(np.arange(len(data['t'])), bad_idx_time)
+    idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
 nwbins = len(data["wbins"])
 for wi in range(nwbins):
     if (
@@ -149,49 +149,32 @@ for wi in range(nwbins):
             lnZ = np.zeros(len(comps))
             nmin = np.inf
             for i in range(1, len(comps) + 1):
-                os.system(
+                # Load inputs
+                os_string = (
                     "python GPTransitDetrendWavelength.py"
-                    + " -nlive "
-                    + str(nlive)
-                    +" -outfolder "
-                    + out_folder
-                    + "/wbin"
-                    + str(wi)
-                    + "/ -compfile "
-                    + out_folder
-                    + "/wbin"
-                    + str(wi)
-                    + "/comps.dat -lcfile "
-                    + out_folder
-                    + "/wbin"
-                    + str(wi)
-                    + "/lc.dat -eparamfile "
-                    + out_ofolder
-                    + "/eparams.dat -ldlaw "
-                    + ld_law
-                    + " -P "
-                    + str(P)
-                    + " -a "
-                    + str(a)
-                    + " -pmean "
-                    + str(pmean)
-                    + " -psd "
-                    + str(psd)
-                    + " -b "
-                    + str(b)
-                    + " -t0 "
-                    + str(t0)
-                    + " -ecc "
-                    + str(ecc)
-                    + " -omega "
-                    + str(omega)
-                    + " -PCA "
-                    + str(PCA)
-                    +" -pctouse "
-                    + str(i)
-                    + " -GPkernel "
-                    + str(GPkernel)
+                    + f" -nlive {nlive}"
+                    + f" -outfolder {out_folder}/wbin{wi}/"
+                    + f" -compfile {out_folder}/wbin{wi}/comps.dat"
+                    + f" -lcfile {out_folder}/wbin{wi}/lc.dat"
+                    + f" -eparamfile {out_ofolder}/eparams.dat"
+                    + f" -ldlaw {ld_law}"
+                    + f" -P {P}"
+                    + f" -a {a}"
+                    + f" -pmean {pmean}"
+                    + f" -psd {psd}"
+                    + f" -b {b}"
+                    + f" -t0 {t0}"
+                    + f" -ecc {ecc}"
+                    + f" -omega {omega}"
+                    + f" -PCA {PCA}"
+                    + f" -pctouse {i}"
+                    + f" -GPkernel {GPkernel}"
                 )
+
+                # Run sampler
+                os.system(os_string)
+
+                # Save output
                 if not os.path.exists(
                     out_folder + "/wbin" + str(wi) + "/PCA_" + str(i)
                 ):
