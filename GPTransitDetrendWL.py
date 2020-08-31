@@ -67,8 +67,10 @@ parser.add_argument("-omegamean", default=None)
 # This reads the standard deviation:
 parser.add_argument("-omegasd", default=None)
 
-# Define if it is a fixed_ecc fit. In this case, ecc = eccmean, omega = omegamean (e.g., if circular, let eccmean = 0, omegamean = 90)
-parser.add_argument("-fixed_ecc", default="True")
+# Define if it is a fixed_eccentricity fit.
+# In this case, ecc = eccmean, omega = omegamean
+# (e.g., if circular, let eccmean = 0, omegamean = 90)
+parser.add_argument("-fixed_eccentricity", default="True")
 
 # Define if PCA will be used instead of using comparison stars directly:
 parser.add_argument("-PCA", default="True")
@@ -129,8 +131,8 @@ def get_quantiles(dist, alpha=0.68, method="median"):
             )
 
 
-# Is it a fixed_ecc fit?
-fixed_ecc = args.fixed_ecc
+# Is it a fixed_eccentricity fit?
+fixed_eccentricity = args.fixed_eccentricity
 # Kernel?
 GPkernel = args.GPkernel
 # Are we going to use PCA?
@@ -208,7 +210,7 @@ if bmean is not None:
     bmean = np.double(bmean)
     bsd = np.double(args.bsd)
 
-if fixed_ecc == "False":
+if fixed_eccentricity == "False":
     eccmean = args.eccmean
     omegamean = args.omegamean
     if eccmean is not None:
@@ -368,7 +370,7 @@ def prior(cube, ndim, nparams):
         cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1.0)
         pcounter += 1
 
-    if fixed_ecc == "False":
+    if fixed_eccentricity == "False":
         if eccmean is None:
             cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1.0)
         else:
@@ -423,7 +425,7 @@ def loglike(cube, ndim, nparams):
     else:
         params.u = [q1]
 
-    if fixed_ecc == "False":
+    if fixed_eccentricity == "False":
         ecc = cube[pcounter]
         pcounter += 1
         omega = cube[pcounter]
@@ -478,7 +480,7 @@ if compfilename is not None:
     n_params += Xc.shape[0]
 if ld_law != "linear":
     n_params += 1
-if fixed_ecc == "False":
+if fixed_eccentricity == "False":
     n_params += 2
 
 print("Number of external parameters:", X.shape[0])
@@ -537,7 +539,7 @@ if not os.path.exists(out_folder + "posteriors_trend_george.pkl"):
         out["posterior_samples"]["q2"] = q2
         pcounter += 1
 
-    if fixed_ecc == "False":
+    if fixed_eccentricity == "False":
         ecc = posterior_samples[:, pcounter]
         out["posterior_samples"]["ecc"] = ecc
         pcounter += 1
@@ -607,7 +609,7 @@ for i in idx_samples:
     for j in range(X.shape[0]):
         alphas[j] = out["posterior_samples"]["alpha" + str(j)][i]
 
-    if fixed_ecc == "False":
+    if fixed_eccentricity == "False":
         ecc = out["posterior_samples"]["ecc"][i]
         omega = out["posterior_samples"]["omega"][i]
     else:

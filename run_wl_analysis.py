@@ -146,9 +146,6 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         # if not os.path.exists(out_folder+'/white-light/PCA_'+str(i)):
         if fixed_eccentricity:
             print("Fixing eccentricity in the fit...")
-            ecc_arg = " --fixed_ecc"
-        else:
-            ecc_arg = ""
         os.system(
             "python GPTransitDetrendWL.py"
             + " -nlive "
@@ -197,6 +194,8 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + str(i)
             + " -GPkernel "
             + str(GPkernel)
+            + " -fixed_eccentricity "
+            + str(fixed_eccentricity)
         )
         if not os.path.exists(out_folder + "/white-light/PCA_" + str(i)):
             os.mkdir(out_folder + "/white-light/PCA_" + str(i))
