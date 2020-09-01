@@ -1,3 +1,5 @@
+# Top level name for outputs directory
+out_folder_base = "out_a"
 # Folder and file where pickle file is (folder/file.pkl); both
 # names are important (folder saves the target name; HAS TO BE THE SAME AS THE
 # TARGET NAME IN THE PICKLE FILE and file the filename):

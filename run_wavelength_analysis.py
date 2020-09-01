@@ -5,6 +5,7 @@ import pickle
 import os
 import importlib
 import shutil
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 
@@ -15,6 +16,7 @@ ofile = args.ofile
 
 # Read input file:
 c = importlib.import_module(ofile)
+out_folder_base = c.out_folder_base
 datafile = c.datafile
 ld_law = c.ld_law
 all_comps = c.comps
@@ -34,10 +36,9 @@ print("Loaded options for:", datafile)
 
 ######################################
 target, pfilename = datafile.split("/")
-out_folder = "outputs/" + datafile.split(".")[0] + "/wavelength"
-out_ofolder = "outputs/" + datafile.split(".")[0]
-if not os.path.exists(out_folder):
-    os.mkdir(out_folder)
+out_folder = f"{out_folder_base}/{datafile.split('.')[0]}/wavelength"
+out_ofolder = f"{out_folder_base}/{datafile.split('.')[0]}"
+Path(out_folder).mkdir(parents=True)
 if not nopickle:
     data = pickle.load(open(datafile, "rb"))
 else:
