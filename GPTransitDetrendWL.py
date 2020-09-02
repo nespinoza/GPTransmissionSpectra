@@ -10,6 +10,9 @@ import os
 import sys
 import pprint
 
+# Define constants on the code:
+G = 6.67408e-8 # Gravitational constant, cgs
+
 parser = argparse.ArgumentParser()
 
 # This reads the output folder:
@@ -50,6 +53,11 @@ parser.add_argument("-psd", default=None)
 parser.add_argument("-amean", default=None)
 # This reads the standard deviation:
 parser.add_argument("-asd", default=None)
+
+# rho:
+parser.add_argument("-rhomean", default=None)
+# This reads the standard deviation:
+parser.add_argument("-rhosd", default=None)
 
 # Impact parameter:
 parser.add_argument("-bmean", default=None)
@@ -201,10 +209,18 @@ if pmean is not None:
     pmean = np.double(pmean)
     psd = np.double(args.psd)
 
-amean = args.amean
-if amean is not None:
-    amean = np.double(amean)
-    asd = np.double(args.asd)
+if args.amean is not None:
+    use_rho_star = False
+    amean = args.amean
+    if amean is not None:
+        amean = np.double(amean)
+        asd = np.double(args.asd)
+else:
+    use_rho_star = True
+    rhomean = args.rhomean
+    if rhomean is not None:
+        rhomean = np.double(rhomean)
+        rhosd = np.double(args.rhosd)
 
 bmean = args.bmean
 if bmean is not None:
@@ -348,11 +364,17 @@ def prior(cube, ndim, nparams):
     else:
         cube[4] = utils.transform_truncated_normal(cube[4], pmean, psd)
 
-    # Prior on a/Rs:
-    if amean is None:
-        cube[5] = utils.transform_uniform(cube[5], 0.1, 300.0)
+    # Prior on a/Rs or rho_star:
+    if use_rho_star:
+        if rhomean is None:
+            cube[5] = utils.transform_uniform(cube[5], 0.1, 300.0)
+        else:
+            cube[5] = utils.transform_normal(cube[5], rhomean, rhosd)
     else:
-        cube[5] = utils.transform_normal(cube[5], amean, asd)
+        if amean is None:
+            cube[5] = utils.transform_uniform(cube[5], 0.1, 300.0)
+        else:
+            cube[5] = utils.transform_normal(cube[5], amean, asd)
 
     # Prior on impact parameter:
     if bmean is None:
@@ -407,7 +429,7 @@ def prior(cube, ndim, nparams):
 
 def loglike(cube, ndim, nparams):
     # Evaluate the log-likelihood. For this, first extract all inputs:
-    mmean, ljitter, t0, P, p, a, b, q1 = (
+    cubes = (
         cube[0],
         cube[1],
         cube[2],
@@ -417,6 +439,14 @@ def loglike(cube, ndim, nparams):
         cube[6],
         cube[7],
     )
+    if use_rho_star:
+        mmean, ljitter, t0, P, p, rho, b, q1 = cubes
+        a = ((rho * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (
+            1.0 / 3.0
+        )
+    else:
+        mmean, ljitter, t0, P, p, a, b, q1 = cubes
+
     pcounter = 8
     if ld_law != "linear":
         q2 = cube[pcounter]
@@ -510,7 +540,7 @@ if not os.path.exists(out_folder + "posteriors_trend_george.pkl"):
     # Get out parameters: this matrix has (samples,n_params+1):
     posterior_samples = output.get_equal_weighted_posterior()[:, :-1]
     # Extract parameters:
-    mmean, ljitter, t0, P, p, a, b, q1 = (
+    posterior_samples_cube = (
         posterior_samples[:, 0],
         posterior_samples[:, 1],
         posterior_samples[:, 2],
@@ -521,16 +551,22 @@ if not os.path.exists(out_folder + "posteriors_trend_george.pkl"):
         posterior_samples[:, 7],
     )
 
-    a_lnZ = output.get_stats()["global evidence"]
     out = {}
     out["posterior_samples"] = {}
+
+    if use_rho_star:
+        mmean, ljitter, t0, P, p, rho, b, q1 = posterior_samples_cube
+        out["posterior_samples"]["rho"] = rho
+    else:
+        mmean, ljitter, t0, P, p, a, b, q1 = posterior_samples_cube
+        out["posterior_samples"]["a"] = a
+
     out["posterior_samples"]["unnamed"] = posterior_samples
     out["posterior_samples"]["mmean"] = mmean
     out["posterior_samples"]["ljitter"] = ljitter
     out["posterior_samples"]["t0"] = t0
     out["posterior_samples"]["P"] = P
     out["posterior_samples"]["p"] = p
-    out["posterior_samples"]["a"] = a
     out["posterior_samples"]["b"] = b
     out["posterior_samples"]["q1"] = q1
 
@@ -567,6 +603,7 @@ if not os.path.exists(out_folder + "posteriors_trend_george.pkl"):
         ]
         pcounter = pcounter + 1
 
+    a_lnZ = output.get_stats()["global evidence"]
     out["lnZ"] = a_lnZ
     pickle.dump(out, open(out_folder + "posteriors_trend_george.pkl", "wb"))
 else:
@@ -588,17 +625,33 @@ systematic_model_lc = np.zeros([len(tall), nsamples])
 
 counter = 0
 for i in idx_samples:
-    mmean, ljitter, max_var, t0, P, p, a, b, q1 = (
-        out["posterior_samples"]["mmean"][i],
-        out["posterior_samples"]["ljitter"][i],
-        out["posterior_samples"]["max_var"][i],
-        out["posterior_samples"]["t0"][i],
-        out["posterior_samples"]["P"][i],
-        out["posterior_samples"]["p"][i],
-        out["posterior_samples"]["a"][i],
-        out["posterior_samples"]["b"][i],
-        out["posterior_samples"]["q1"][i],
-    )
+    if use_rho_star:
+        mmean, ljitter, max_var, t0, P, p, rho, b, q1 = (
+            out["posterior_samples"]["mmean"][i],
+            out["posterior_samples"]["ljitter"][i],
+            out["posterior_samples"]["max_var"][i],
+            out["posterior_samples"]["t0"][i],
+            out["posterior_samples"]["P"][i],
+            out["posterior_samples"]["p"][i],
+            out["posterior_samples"]["rho"][i],
+            out["posterior_samples"]["b"][i],
+            out["posterior_samples"]["q1"][i],
+        )
+        a = ((rho * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (
+            1.0 / 3.0
+        )
+    else:
+        mmean, ljitter, max_var, t0, P, p, a, b, q1 = (
+            out["posterior_samples"]["mmean"][i],
+            out["posterior_samples"]["ljitter"][i],
+            out["posterior_samples"]["max_var"][i],
+            out["posterior_samples"]["t0"][i],
+            out["posterior_samples"]["P"][i],
+            out["posterior_samples"]["p"][i],
+            out["posterior_samples"]["a"][i],
+            out["posterior_samples"]["b"][i],
+            out["posterior_samples"]["q1"][i],
+        )
 
     if ld_law != "linear":
         q2 = out["posterior_samples"]["q2"][i]

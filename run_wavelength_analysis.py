@@ -21,7 +21,12 @@ datafile = c.datafile
 ld_law = c.ld_law
 all_comps = c.comps
 P = c.Pmean
-a = c.amean
+if hasattr(c, "amean"):
+    use_rho_star = False
+    amean = c.amean
+else:
+    use_rho_star = True
+    rhomean = c.rhomean
 pmean, psd = c.pmean, c.psd
 b = c.bmean
 t0 = c.t0mean
@@ -160,7 +165,6 @@ for wi in range(nwbins):
                     + f" -eparamfile {out_ofolder}/eparams.dat"
                     + f" -ldlaw {ld_law}"
                     + f" -P {P}"
-                    + f" -a {a}"
                     + f" -pmean {pmean}"
                     + f" -psd {psd}"
                     + f" -b {b}"
@@ -171,6 +175,10 @@ for wi in range(nwbins):
                     + f" -pctouse {i}"
                     + f" -GPkernel {GPkernel}"
                 )
+                if use_rho_star:
+                    os_string += f" -rho {rhomean}"
+                else:
+                    os_string += f" -a {amean}"
 
                 # Run sampler
                 os.system(os_string)

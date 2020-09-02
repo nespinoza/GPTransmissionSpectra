@@ -7,6 +7,9 @@ import importlib
 import shutil
 from pathlib import Path
 
+# Define constants on the code:
+G = 6.67408e-8 # Gravitational constant, cgs
+
 parser = argparse.ArgumentParser()
 
 # This parses in the option file:
@@ -21,7 +24,12 @@ datafile = c.datafile
 ld_law = c.ld_law
 comps = c.comps
 Pmean, Psd = c.Pmean, c.Psd
-amean, asd = c.amean, c.asd
+if hasattr(c, "amean"):
+    use_rho_star = False
+    amean, asd = c.amean, c.asd
+else:
+    use_rho_star = True
+    rhomean, rhosd = c.rhomean, c.rhosd
 pmean, psd = c.pmean, c.psd
 bmean, bsd = c.bmean, c.bsd
 t0mean, t0sd = c.t0mean, c.t0sd
@@ -153,8 +161,6 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + f" -ldlaw {ld_law}"
             + f" -Pmean {Pmean}"
             + f" -Psd {Psd}"
-            + f" -amean {amean}"
-            + f" -asd {asd}"
             + f" -pmean {pmean}"
             + f" -psd {psd}"
             + f" -bmean {bmean}"
@@ -170,6 +176,12 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + f" -fixed_eccentricity {fixed_eccentricity}"
             + f" -pctouse {i}"
         )
+        if use_rho_star:
+            os_string += f" -rhomean {rhomean}"
+            os_string += f" -rhosd {rhosd}"
+        else:
+            os_string += f" -amean {amean}"
+            os_string += f" -asd {asd}"
 
         # Run sampler
         os.system(os_string)
@@ -227,7 +239,10 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
     Pmodels = Z / np.sum(Z)
     # Prepare array that saves outputs:
     periods = np.array([])
-    aR = np.array([])
+    if use_rho_star:
+        rhos = np.array([])
+    else:
+        aRs = np.array([])
     p = np.array([])
     b = np.array([])
     t0 = np.array([])
@@ -267,7 +282,14 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         periods = np.append(
             periods, posteriors["posterior_samples"]["P"][idx_extract]
         )
-        aR = np.append(aR, posteriors["posterior_samples"]["a"][idx_extract])
+        if use_rho_star:
+            rhos = np.append(
+                rhos, posteriors["posterior_samples"]["rho"][idx_extract]
+            )
+        else:
+            aRs = np.append(
+                aRs, posteriors["posterior_samples"]["a"][idx_extract]
+            )
         p = np.append(p, posteriors["posterior_samples"]["p"][idx_extract])
         b = np.append(b, posteriors["posterior_samples"]["b"][idx_extract])
         t0 = np.append(t0, posteriors["posterior_samples"]["t0"][idx_extract])
@@ -314,10 +336,15 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
     # Now save final BMA posteriors:
     out = {}
     out["P"] = periods
-    out["aR"] = aR
+    if use_rho_star:
+        out["rho"] = rhos
+        aRs = (
+            (rhos * G * ((periods * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)
+        ) ** (1.0 / 3.0)
     out["p"] = p
     out["b"] = b
-    out["inc"] = np.arccos(b / aR) * 180.0 / np.pi
+    out["aR"] = aRs
+    out["inc"] = np.arccos(b / aRs) * 180.0 / np.pi
     out["t0"] = t0
     if not fixed_eccentricity:
         out["ecc"] = ecc

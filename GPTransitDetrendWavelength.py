@@ -8,6 +8,9 @@ import numpy as np
 import utils
 import os
 
+# Define constants on the code:
+G = 6.67408e-8 # Gravitational constant, cgs
+
 parser = argparse.ArgumentParser()
 
 # This reads the output folder:
@@ -42,6 +45,9 @@ parser.add_argument("-psd", default=None)
 
 # a/Rs:
 parser.add_argument("-a", default=None)
+
+# rho:
+parser.add_argument("-rho", default=None)
 
 # Impact parameter:
 parser.add_argument("-b", default=None)
@@ -175,7 +181,13 @@ if pmean is not None:
     pmean = np.double(pmean)
     psd = np.double(args.psd)
 
-a = np.double(args.a)
+if args.a is not None:
+    use_rho_star = False
+    a = np.double(args.a)
+else:
+    use_rho_star = True
+    rho = np.double(args.rho)
+    a = ((rho*G*((P*24.*3600.)**2))/(3.*np.pi))**(1./3.)
 b = np.double(args.b)
 
 if not fixed_ecc:
