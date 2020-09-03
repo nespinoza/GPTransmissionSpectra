@@ -1,5 +1,12 @@
 from scipy.stats import gamma, norm, beta, truncnorm
 import numpy as np
+import pickle
+
+def load_pkl(fpath):
+    with open(fpath, "rb") as f:
+        data = pickle.load(f)
+    return data
+
 
 # READ OPTION FILE:
 def _to_arr(idx_or_slc):
@@ -24,67 +31,6 @@ def _bad_idxs(s):
         bad_idxs = list(map(_to_arr, s))
         bad_idxs = np.concatenate(bad_idxs, axis=0)
         return bad_idxs
-
-
-def read_optfile(fname):
-    fin = open(fname, "r")
-    x = fin.read()
-    data = x.split("\n")
-    out = {}
-    for i in range(len(data)):
-        if data[i] != "":
-            if data[i][0] != "#":
-                variable = data[i].split(":")[0].split()[0]
-                if variable.lower() == "datafile":
-                    out["datafile"] = data[i].split(":")[-1].split()[0]
-                elif variable.lower() == "ld_law":
-                    out["ld_law"] = data[i].split(":")[-1].split()[0]
-                elif variable.lower() == "idx_time":
-                    out["idx_time"] = ":".join(data[i].split(":")[1:]).split()[
-                        0
-                    ]
-                elif variable.lower() == "fixed_eccentricity":
-                    if data[i].split(":")[-1].split()[0].lower() == "false":
-                        out["fixed_eccentricity"] = False
-                    else:
-                        out["fixed_eccentricity"] = True
-                elif variable.lower() == "comps":
-                    vals = data[i].split(":")[-1].split()[0].split(",")
-                    out["comps"] = list(np.array(vals).astype(int))
-                else:
-                    variables = variable.split(",")
-                    if len(variables) == 1:
-                        out[variable] = np.double(
-                            data[i].split(":")[-1].split()[0]
-                        )
-                        out[variable.split("mean")[0] + "sd"] = 0.0
-                    else:
-                        values = data[i].split(":")[-1].split()[0].split(",")
-                        out[variables[0]] = np.double(values[0])
-                        out[variables[1]] = np.double(values[1])
-        else:
-            break
-    return (
-        out["datafile"],
-        out["ld_law"],
-        out["idx_time"],
-        out["comps"],
-        out["Pmean"],
-        out["Psd"],
-        out["amean"],
-        out["asd"],
-        out["pmean"],
-        out["psd"],
-        out["bmean"],
-        out["bsd"],
-        out["t0mean"],
-        out["t0sd"],
-        out["fixed_eccentricity"],
-        out["eccmean"],
-        out["eccsd"],
-        out["omegamean"],
-        out["omegasd"],
-    )
 
 
 # TRANSFORMATION OF PRIORS:
