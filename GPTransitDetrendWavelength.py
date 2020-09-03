@@ -7,9 +7,10 @@ from scipy import interpolate
 import numpy as np
 import utils
 import os
+from astropy.constants import G as const_G
 
 # Define constants on the code:
-G = 6.67408e-8  # Gravitational constant, cgs
+G = const_G.cgs.value  # Gravitational constant, cgs
 
 parser = argparse.ArgumentParser()
 

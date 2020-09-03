@@ -6,9 +6,10 @@ import os
 import importlib
 import shutil
 from pathlib import Path
+from astropy.constants import G as const_G
 
 # Define constants on the code:
-G = 6.67408e-8  # Gravitational constant, cgs
+G = const_G.cgs.value  # Gravitational constant, cgs
 
 parser = argparse.ArgumentParser()
 
