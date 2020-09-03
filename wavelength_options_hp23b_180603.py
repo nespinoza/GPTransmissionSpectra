@@ -15,7 +15,7 @@ comps = [1, 0]
 # Priors (assumed gaussian) Sada & Ramon-Fox et al. (2016)
 Pmean = 1.2128864726
 amean = 4.28971
-#rhomean = 0.9
+# rhomean = 0.9
 pmean, psd = 0.1164954324, 0.01
 bmean = 0.4751723328
 t0mean = 2454852.2654074058

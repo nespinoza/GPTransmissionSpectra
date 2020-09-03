@@ -11,7 +11,7 @@ import sys
 import pprint
 
 # Define constants on the code:
-G = 6.67408e-8 # Gravitational constant, cgs
+G = 6.67408e-8  # Gravitational constant, cgs
 
 parser = argparse.ArgumentParser()
 
@@ -63,6 +63,10 @@ parser.add_argument("-rhosd", default=None)
 parser.add_argument("-bmean", default=None)
 # This reads the standard deviation:
 parser.add_argument("-bsd", default=None)
+
+# pl, pu for b, p re-parameterization
+parser.add_argument("-pl", default=None)
+parser.add_argument("-pu", default=None)
 
 # ecc:
 parser.add_argument("-eccmean", default=None)
@@ -204,28 +208,31 @@ if Pmean is not None:
     Pmean = np.double(Pmean)
     Psd = np.double(args.Psd)
 
-pmean = args.pmean
-if pmean is not None:
+if (args.bmean is not None) and (args.pmean is not None):
+    use_r1_r2 = False
+    bmean = args.bmean
+    bmean = np.double(bmean)
+    bsd = np.double(args.bsd)
+
+    pmean = args.pmean
     pmean = np.double(pmean)
     psd = np.double(args.psd)
+else:
+    use_r1_r2 = True
+    pl, pu = args.pl, args.pu
+    pl, pu = np.double(pl), np.double(pu)
+    Ar = (pu - pl) / (2.0 + pl + pu)
 
 if args.amean is not None:
     use_rho_star = False
     amean = args.amean
-    if amean is not None:
-        amean = np.double(amean)
-        asd = np.double(args.asd)
+    amean = np.double(amean)
+    asd = np.double(args.asd)
 else:
     use_rho_star = True
     rhomean = args.rhomean
-    if rhomean is not None:
-        rhomean = np.double(rhomean)
-        rhosd = np.double(args.rhosd)
-
-bmean = args.bmean
-if bmean is not None:
-    bmean = np.double(bmean)
-    bsd = np.double(args.bsd)
+    rhomean = np.double(rhomean)
+    rhosd = np.double(args.rhosd)
 
 if fixed_eccentricity == "False":
     eccmean = args.eccmean
@@ -338,56 +345,87 @@ params, m = init_batman(t, law=ld_law)
 
 # Now define MultiNest priors and log-likelihood:
 def prior(cube, ndim, nparams):
+    pcounter = 0  # keep track of prior indices in cube
     # Prior on "median flux" is uniform:
-    cube[0] = utils.transform_uniform(cube[0], -2.0, 2.0)
+    cube[pcounter] = utils.transform_uniform(cube[pcounter], -2.0, 2.0)
+    pcounter += 1
 
     # Pior on the log-jitter term (note this is the log VARIANCE, not sigma); from 0.01 to 100 ppm:
-    cube[1] = utils.transform_uniform(
-        cube[1], np.log((0.01e-3) ** 2), np.log((100e-3) ** 2)
+    cube[pcounter] = utils.transform_uniform(
+        cube[pcounter], np.log((0.01e-3) ** 2), np.log((100e-3) ** 2)
     )
+    pcounter += 1
 
     # Prior on t0:
     if t0mean is None:
-        cube[2] = utils.transform_uniform(cube[2], np.min(t), np.max(t))
+        cube[pcounter] = utils.transform_uniform(
+            cube[pcounter], np.min(t), np.max(t)
+        )
     else:
-        cube[2] = utils.transform_normal(cube[2], t0mean, t0sd)
+        cube[pcounter] = utils.transform_normal(cube[pcounter], t0mean, t0sd)
+    pcounter += 1
 
     # Prior on Period:
     if Pmean is None:
-        cube[3] = utils.transform_loguniform(cube[3], 0.1, 1000.0)
+        cube[pcounter] = utils.transform_loguniform(
+            cube[pcounter], 0.1, 1000.0
+        )
     else:
-        cube[3] = utils.transform_normal(cube[3], Pmean, Psd)
+        cube[pcounter] = utils.transform_normal(cube[pcounter], Pmean, Psd)
+    pcounter += 1
 
-    # Prior on planet-to-star radius ratio:
-    if pmean is None:
-        cube[4] = utils.transform_uniform(cube[4], 0, 1)
+    # Prior on impact parameter and planet-to-star radius ratio:
+    if use_r1_r2:
+        if (pl is None) or (pu is None):
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1)
+            pcounter += 1
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1)
+            pcounter += 1
+        else:
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], pl, pu)
+            pcounter += 1
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], pl, pu)
+            pcounter += 1
     else:
-        cube[4] = utils.transform_truncated_normal(cube[4], pmean, psd)
+        if bmean is None:
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 2.0)
+        else:
+            cube[pcounter] = utils.transform_truncated_normal(
+                cube[pcounter], bmean, bsd, a=0.0, b=2.0
+            )
+        pcounter += 1
+        if pmean is None:
+            cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1)
+        else:
+            cube[pcounter] = utils.transform_truncated_normal(
+                cube[pcounter], pmean, psd
+            )
+        pcounter += 1
 
-    # Prior on a/Rs or rho_star:
+    # Prior on stellar density
     if use_rho_star:
         if rhomean is None:
-            cube[5] = utils.transform_uniform(cube[5], 0.1, 300.0)
+            cube[pcounter] = utils.transform_uniform(
+                cube[pcounter], 0.1, 300.0
+            )
         else:
-            cube[5] = utils.transform_normal(cube[5], rhomean, rhosd)
+            cube[pcounter] = utils.transform_normal(
+                cube[pcounter], rhomean, rhosd
+            )
     else:
+        # Prior on a/Rs or rho_star:
         if amean is None:
-            cube[5] = utils.transform_uniform(cube[5], 0.1, 300.0)
+            cube[pcounter] = utils.transform_uniform(
+                cube[pcounter], 0.1, 300.0
+            )
         else:
-            cube[5] = utils.transform_normal(cube[5], amean, asd)
-
-    # Prior on impact parameter:
-    if bmean is None:
-        cube[6] = utils.transform_uniform(cube[6], 0, 2.0)
-    else:
-        cube[6] = utils.transform_truncated_normal(
-            cube[6], bmean, bsd, a=0.0, b=2.0
-        )
+            cube[pcounter] = utils.transform_normal(cube[pcounter], amean, asd)
+    pcounter += 1
 
     # Prior either on the linear LD or the transformed first two-parameter law LD (q1):
-    cube[7] = utils.transform_uniform(cube[7], 0, 1.0)
+    cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1.0)
+    pcounter += 1
 
-    pcounter = 8
     # (Transformed) limb-darkening coefficient for two-parameter laws (q2):
     if ld_law != "linear":
         cube[pcounter] = utils.transform_uniform(cube[pcounter], 0, 1.0)
@@ -419,7 +457,7 @@ def prior(cube, ndim, nparams):
     cube[pcounter] = utils.transform_loguniform(
         cube[pcounter], (0.01 * 1e-3) ** 2, (100 * 1e-3) ** 2
     )
-    pcounter = pcounter + 1
+    pcounter += 1
 
     # Now priors on the alphas = 1/lambdas; gamma(1,1) = exponential, same as Gibson+:
     for i in range(X.shape[0]):
@@ -429,23 +467,31 @@ def prior(cube, ndim, nparams):
 
 def loglike(cube, ndim, nparams):
     # Evaluate the log-likelihood. For this, first extract all inputs:
-    cubes = (
-        cube[0],
-        cube[1],
-        cube[2],
-        cube[3],
-        cube[4],
-        cube[5],
-        cube[6],
-        cube[7],
-    )
+    mmean, ljitter, t0, P = [cube[i] for i in range(4)]
+    q1 = cube[7]
+
     if use_rho_star:
-        mmean, ljitter, t0, P, p, rho, b, q1 = cubes
+        rho = cube[6]
         a = ((rho * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (
             1.0 / 3.0
         )
     else:
-        mmean, ljitter, t0, P, p, a, b, q1 = cubes
+        a = cube[6]
+
+    if use_r1_r2:
+        r1, r2 = cube[4], cube[5]
+        if r1 > Ar:
+            b, p = (
+                (1 + pl) * (1.0 + (r1 - 1.0) / (1.0 - Ar)),
+                (1 - r2) * pl + r2 * pu,
+            )
+        else:
+            b, p = (
+                (1.0 + pl) + np.sqrt(r1 / Ar) * r2 * (pu - pl),
+                pu + (pl - pu) * np.sqrt(r1 / Ar) * (1.0 - r2),
+            )
+    else:
+        b, p = cube[4], cube[5]
 
     pcounter = 8
     if ld_law != "linear":
@@ -539,35 +585,48 @@ if not os.path.exists(out_folder + "posteriors_trend_george.pkl"):
     )
     # Get out parameters: this matrix has (samples,n_params+1):
     posterior_samples = output.get_equal_weighted_posterior()[:, :-1]
+
     # Extract parameters:
-    posterior_samples_cube = (
-        posterior_samples[:, 0],
-        posterior_samples[:, 1],
-        posterior_samples[:, 2],
-        posterior_samples[:, 3],
-        posterior_samples[:, 4],
-        posterior_samples[:, 5],
-        posterior_samples[:, 6],
-        posterior_samples[:, 7],
-    )
+    mmean, ljitter, t0, P = posterior_samples[:, :4].T
+    q1 = posterior_samples[:, 7]
 
     out = {}
     out["posterior_samples"] = {}
 
     if use_rho_star:
-        mmean, ljitter, t0, P, p, rho, b, q1 = posterior_samples_cube
+        rho = posterior_samples[:, 6]
         out["posterior_samples"]["rho"] = rho
     else:
-        mmean, ljitter, t0, P, p, a, b, q1 = posterior_samples_cube
+        a = posterior_samples[:, 6]
         out["posterior_samples"]["a"] = a
+
+    if use_r1_r2:
+        r1, r2 = posterior_samples[:, 4:6].T
+        out["posterior_samples"]["r1"] = r1
+        out["posterior_samples"]["r2"] = r2
+        b = np.zeros_like(r1)
+        p = np.zeros_like(r1)
+        gtAr = r1 > Ar
+        if sum(gtAr) != 0:
+            b[gtAr], p[gtAr] = (
+                (1 + pl) * (1.0 + (r1[gtAr] - 1.0) / (1.0 - Ar)),
+                (1 - r2[gtAr]) * pl + r2[gtAr] * pu,
+            )
+        if sum(~gtAr) != 0:
+            b[~gtAr], p[~gtAr] = (
+                (1.0 + pl) + np.sqrt(r1[~gtAr] / Ar) * r2[~gtAr] * (pu - pl),
+                pu + (pl - pu) * np.sqrt(r1[~gtAr] / Ar) * (1.0 - r2[~gtAr]),
+            )
+    else:
+        b, p = posterior_samples[:, 4:6].T
+        out["posterior_samples"]["b"] = b
+        out["posterior_samples"]["p"] = p
 
     out["posterior_samples"]["unnamed"] = posterior_samples
     out["posterior_samples"]["mmean"] = mmean
     out["posterior_samples"]["ljitter"] = ljitter
     out["posterior_samples"]["t0"] = t0
     out["posterior_samples"]["P"] = P
-    out["posterior_samples"]["p"] = p
-    out["posterior_samples"]["b"] = b
     out["posterior_samples"]["q1"] = q1
 
     pcounter = 8
@@ -625,32 +684,42 @@ systematic_model_lc = np.zeros([len(tall), nsamples])
 
 counter = 0
 for i in idx_samples:
+    mmean, ljitter, max_var, t0, P, q1 = (
+        out["posterior_samples"]["mmean"][i],
+        out["posterior_samples"]["ljitter"][i],
+        out["posterior_samples"]["max_var"][i],
+        out["posterior_samples"]["t0"][i],
+        out["posterior_samples"]["P"][i],
+        out["posterior_samples"]["q1"][i],
+    )
+
     if use_rho_star:
-        mmean, ljitter, max_var, t0, P, p, rho, b, q1 = (
-            out["posterior_samples"]["mmean"][i],
-            out["posterior_samples"]["ljitter"][i],
-            out["posterior_samples"]["max_var"][i],
-            out["posterior_samples"]["t0"][i],
-            out["posterior_samples"]["P"][i],
-            out["posterior_samples"]["p"][i],
-            out["posterior_samples"]["rho"][i],
-            out["posterior_samples"]["b"][i],
-            out["posterior_samples"]["q1"][i],
-        )
+        rho = out["posterior_samples"]["rho"][i]
         a = ((rho * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (
             1.0 / 3.0
         )
     else:
-        mmean, ljitter, max_var, t0, P, p, a, b, q1 = (
-            out["posterior_samples"]["mmean"][i],
-            out["posterior_samples"]["ljitter"][i],
-            out["posterior_samples"]["max_var"][i],
-            out["posterior_samples"]["t0"][i],
-            out["posterior_samples"]["P"][i],
-            out["posterior_samples"]["p"][i],
-            out["posterior_samples"]["a"][i],
+        a = out["posterior_samples"]["a"][i]
+
+    if use_r1_r2:
+        r1, r2, = (
+            out["posterior_samples"]["r1"][i],
+            out["posterior_samples"]["r2"][i],
+        )
+        if r1 > Ar:
+            b, p = (
+                (1 + pl) * (1.0 + (r1 - 1.0) / (1.0 - Ar)),
+                (1 - r2) * pl + r2 * pu,
+            )
+        else:
+            b, p = (
+                (1.0 + pl) + np.sqrt(r1 / Ar) * r2 * (pu - pl),
+                pu + (pl - pu) * np.sqrt(r1 / Ar) * (1.0 - r2),
+            )
+    else:
+        b, p = (
             out["posterior_samples"]["b"][i],
-            out["posterior_samples"]["q1"][i],
+            out["posterior_samples"]["p"][i],
         )
 
     if ld_law != "linear":
@@ -716,6 +785,13 @@ for i in idx_samples:
 fileout = open("detrended_lc.dat", "w")
 file_model_out = open("model_lc.dat", "w")
 fileout.write("# Time   DetFlux   DetFluxErr   Model\n")
+file_model_out.write(
+    "# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n"
+)
+for i in range(detrended_lc.shape[0]):
+    val = np.median(detrended_lc[i, :])
+    val_err = np.median(detrended_lc_err[i, :])
+    dist = 10 ** (-np.random.normal(val, val_err, 1000) / 2.51)
 file_model_out.write(
     "# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n"
 )

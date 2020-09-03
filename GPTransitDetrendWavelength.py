@@ -9,7 +9,7 @@ import utils
 import os
 
 # Define constants on the code:
-G = 6.67408e-8 # Gravitational constant, cgs
+G = 6.67408e-8  # Gravitational constant, cgs
 
 parser = argparse.ArgumentParser()
 
@@ -187,7 +187,7 @@ if args.a is not None:
 else:
     use_rho_star = True
     rho = np.double(args.rho)
-    a = ((rho*G*((P*24.*3600.)**2))/(3.*np.pi))**(1./3.)
+    a = ((rho * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (1.0 / 3.0)
 b = np.double(args.b)
 
 if not fixed_ecc:

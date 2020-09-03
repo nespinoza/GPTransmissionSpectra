@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 # Define constants on the code:
-G = 6.67408e-8 # Gravitational constant, cgs
+G = 6.67408e-8  # Gravitational constant, cgs
 
 parser = argparse.ArgumentParser()
 
@@ -30,8 +30,14 @@ if hasattr(c, "amean"):
 else:
     use_rho_star = True
     rhomean, rhosd = c.rhomean, c.rhosd
-pmean, psd = c.pmean, c.psd
-bmean, bsd = c.bmean, c.bsd
+if hasattr(c, "bmean"):
+    use_r1_r2 = False
+    bmean, bsd = c.bmean, c.bsd
+    pmean, psd = c.pmean, c.psd
+else:
+    use_r1_r2 = True
+    pl, pu = c.pl, c.pu
+    Ar = (pu - pl) / (2.0 + pl + pu)
 t0mean, t0sd = c.t0mean, c.t0sd
 fixed_eccentricity = c.fixed_eccentricity
 eccmean, eccsd = c.eccmean, c.eccsd
@@ -161,10 +167,6 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + f" -ldlaw {ld_law}"
             + f" -Pmean {Pmean}"
             + f" -Psd {Psd}"
-            + f" -pmean {pmean}"
-            + f" -psd {psd}"
-            + f" -bmean {bmean}"
-            + f" -bsd {bsd}"
             + f" -t0mean {t0mean}"
             + f" -t0sd {t0sd}"
             + f" -eccmean {eccmean}"
@@ -182,6 +184,14 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         else:
             os_string += f" -amean {amean}"
             os_string += f" -asd {asd}"
+        if use_r1_r2:
+            os_string += f" -pl {pl}"
+            os_string += f" -pu {pu}"
+        else:
+            os_string += f" -pmean {pmean}"
+            os_string += f" -psd {psd}"
+            os_string += f" -bmean {bmean}"
+            os_string += f" -bsd {bsd}"
 
         # Run sampler
         os.system(os_string)
@@ -229,8 +239,8 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             "rb",
         )
         posteriors = pickle.load(fin)
-        if len(posteriors["posterior_samples"]["p"]) < nmin:
-            nmin = len(posteriors["posterior_samples"]["p"])
+        if len(posteriors["posterior_samples"]["q1"]) < nmin:
+            nmin = len(posteriors["posterior_samples"]["q1"])
         lnZ[i - 1] = posteriors["lnZ"]
         fin.close()
     # Calculate posterior probabilities of the models from the Bayes Factors:
@@ -243,8 +253,10 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         rhos = np.array([])
     else:
         aRs = np.array([])
-    p = np.array([])
-    b = np.array([])
+    if use_r1_r2:
+        r1s, r2s = np.array([]), np.array([])
+    else:
+        b, p = np.array([]), np.array([])
     t0 = np.array([])
     ecc = np.array([])
     omega = np.array([])
@@ -290,8 +302,16 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             aRs = np.append(
                 aRs, posteriors["posterior_samples"]["a"][idx_extract]
             )
-        p = np.append(p, posteriors["posterior_samples"]["p"][idx_extract])
-        b = np.append(b, posteriors["posterior_samples"]["b"][idx_extract])
+        if use_r1_r2:
+            r1s = np.append(
+                r1s, posteriors["posterior_samples"]["r1"][idx_extract]
+            )
+            r2s = np.append(
+                r2s, posteriors["posterior_samples"]["r2"][idx_extract]
+            )
+        else:
+            p = np.append(p, posteriors["posterior_samples"]["p"][idx_extract])
+            b = np.append(b, posteriors["posterior_samples"]["b"][idx_extract])
         t0 = np.append(t0, posteriors["posterior_samples"]["t0"][idx_extract])
         if not fixed_eccentricity:
             ecc = np.append(
@@ -341,8 +361,24 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         aRs = (
             (rhos * G * ((periods * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)
         ) ** (1.0 / 3.0)
-    out["p"] = p
+    if use_r1_r2:
+        b = np.zeros_like(r1s)
+        p = np.zeros_like(r1s)
+        gtAr = r1s > Ar
+        if sum(gtAr) != 0:
+            b[gtAr], p[gtAr] = (
+                (1 + pl) * (1.0 + (r1s[gtAr] - 1.0) / (1.0 - Ar)),
+                (1 - r2s[gtAr]) * pl + r2s[gtAr] * pu,
+            )
+        if sum(~gtAr) != 0:
+            b[~gtAr], p[~gtAr] = (
+                (1.0 + pl) + np.sqrt(r1s[~gtAr] / Ar) * r2s[~gtAr] * (pu - pl),
+                pu + (pl - pu) * np.sqrt(r1s[~gtAr] / Ar) * (1.0 - r2s[~gtAr]),
+            )
+        out["r1"] = r1s
+        out["r2"] = r2s
     out["b"] = b
+    out["p"] = p
     out["aR"] = aRs
     out["inc"] = np.arccos(b / aRs) * 180.0 / np.pi
     out["t0"] = t0
