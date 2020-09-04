@@ -2,6 +2,7 @@ from scipy.stats import gamma, norm, beta, truncnorm
 import numpy as np
 import pickle
 
+
 def load_pkl(fpath):
     with open(fpath, "rb") as f:
         data = pickle.load(f)

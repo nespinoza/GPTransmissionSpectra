@@ -21,7 +21,7 @@ datafile = c.datafile
 ld_law = c.ld_law
 eccmean = c.eccmean
 omegamean = c.omegamean
-numpoints = 1000 # number of time points to interpolate
+numpoints = 1000  # number of time points to interpolate
 out_wl = f"{out_folder_base}/{datafile.split('.')[0]}/white-light"
 
 if hasattr(c, "amean"):
@@ -36,7 +36,7 @@ else:
     pl, pu = c.pl, c.pu
     Ar = (pu - pl) / (2.0 + pl + pu)
 
-n = 1 # Starting PCA number
+n = 1  # Starting PCA number
 path_PCA = f"{out_wl}/PCA_{n}/posteriors_trend_george.pkl"
 while os.path.exists(path_PCA):
     # load PCA posterior and lc times
@@ -187,4 +187,4 @@ while os.path.exists(path_PCA):
     n += 1
     path_PCA = f"{out_wl}/PCA_{n}/posteriors_trend_george.pkl"
 
-print('Done!')
+print("Done!")
