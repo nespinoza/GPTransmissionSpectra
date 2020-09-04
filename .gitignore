@@ -1,3 +1,4 @@
 */
 *.job
-wavelength_*.dat
+*.log
+*options*.py
