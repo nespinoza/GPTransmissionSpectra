@@ -1,0 +1,99 @@
+import numpy as np
+import batman
+import utils
+import pandas as pd
+from astropy.constants import G as const_G
+
+# Define constants on the code:
+G = const_G.cgs.value  # Gravitational constant, cgs
+
+# Settings
+ld_law = "linear"
+eccmean = 0.0
+omegamean = 90.0
+Npoints = 1000 # Number of points in model
+pl, pu = 0, 1
+
+out_wl = f"out_st/HATP26/hp26_190313_st/white-light"
+
+# load BMA WLC results and lc times
+df_results = pd.read_table(
+    f"{out_wl}/results.dat",
+    sep="\s+",
+    escapechar='#',
+    index_col=" Variable",
+)
+
+lc_times = np.genfromtxt(f"{out_wl}/lc.dat", unpack=True, usecols=(0))
+tmin, tmax = np.min(lc_times), np.max(lc_times)
+t = np.linspace(
+    tmin, tmax, Npoints
+)  # interpolate lc times to produce a smooth model later
+transit_lc = np.zeros([len(t), Npoints])
+
+# Initialize batman:
+params, m = utils.init_batman(t, law=ld_law)
+
+# Build transit model
+mmeani, t0, P, r1, r2, q1 = (
+    df_results.at["mmean", "Value"],
+    df_results.at["t0", "Value"],
+    df_results.at["P", "Value"],
+    df_results.at["r1", "Value"],
+    df_results.at["r2", "Value"],
+    df_results.at["q1", "Value"],
+)
+
+if "rho" in df_results.columns:
+    rhos = df_results.at["rho", "Value"]
+    aRs = ((rhos * G * ((P * 24.0 * 3600.0) ** 2)) / (3.0 * np.pi)) ** (
+        1.0 / 3.0
+    )
+else:
+    aRs = df_results.at["aR", "Value"]
+
+# Transform r1, r2 -> b, p
+Ar = (pu - pl) / (2.0 + pl + pu)
+if r1 > Ar:
+    b, p = (
+        (1 + pl) * (1.0 + (r1 - 1.0) / (1.0 - Ar)),
+        (1 - r2) * pl + r2 * pu,
+    )
+else:
+    b, p = (
+        (1.0 + pl) + np.sqrt(r1 / Ar) * r2 * (pu - pl),
+        pu + (pl - pu) * np.sqrt(r1 / Ar) * (1.0 - r2),
+    )
+
+# Limb darkening
+if ld_law != "linear":
+    q2 = df_results.at["posterior_samples"]["q2", "Value"]
+    coeff1, coeff2 = utils.reverse_ld_coeffs(ld_law, q1, q2)
+    params.u = [coeff1, coeff2]
+else:
+    params.u = [q1]
+
+# Ecc, inclination
+ecc = eccmean
+omega = omegamean
+ecc_factor = (1.0 + ecc * np.sin(omega * np.pi / 180.0)) / (
+    1.0 - ecc ** 2
+)
+inc_inv_factor = (b / aRs) * ecc_factor
+inc = np.arccos(inc_inv_factor) * 180.0 / np.pi
+
+params.t0 = t0
+params.per = P
+params.rp = p
+params.a = aRs
+params.inc = inc
+params.ecc = ecc
+params.w = omega
+
+lcmodel = m.light_curve(params)
+
+# write results to table
+savepath = f"{out_wl}/full_model_BMA.dat"
+x = np.append(t.reshape(len(t), 1), lcmodel.reshape(len(t), 1), axis=1)
+np.savetxt(savepath, x)
+print(f"Saved BMA WLC model to {savepath}")
