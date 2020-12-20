@@ -551,7 +551,6 @@ def loglike(cube, ndim, nparams):
     gp.set_parameter_vector(gp_vector)
     return gp.log_likelihood(residuals)
 
-
 #              v neparams   v max variance
 n_params = 8 + X.shape[0] + 1
 if compfilename is not None:
