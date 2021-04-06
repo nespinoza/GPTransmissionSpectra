@@ -278,6 +278,20 @@ for wi in range(nwbins):
                 )
                 posteriors = pickle.load(fin)
                 fin.close()
+                # Check how many comp star coefficents were fitted:
+                xccounter = 0
+                for vrs in list(posteriors["posterior_samples"].keys()):
+                    if "xc" in vrs:
+                        if f"xc{xccounter}" not in locals():
+                            exec(
+                                "xc"
+                                + str(xccounter)
+                                + " = posteriors['posterior_samples']['xc"
+                                + str(xccounter)
+                                + "']"
+                            )
+                        xccounter = xccounter + 1
+
                 nextract = int(Pmodels[i - 1] * nmin)
                 idx_extract = np.random.choice(
                     np.arange(len(posteriors["posterior_samples"]["p"])),
@@ -327,6 +341,17 @@ for wi in range(nwbins):
                         + str(ai)
                         + "'][idx_extract])"
                     )
+                # Comp star coefficients
+                for xci in range(xccounter):
+                    exec(
+                        "xc"
+                        + str(xci)
+                        + " = np.append(xc"
+                        + str(xci)
+                        + ",posteriors['posterior_samples']['xc"
+                        + str(xci)
+                        + "'][idx_extract])"
+                    )
 
             # Now save final BMA posteriors:
             out = {}
@@ -340,6 +365,8 @@ for wi in range(nwbins):
             out["max_var"] = max_GPvariance
             for ai in range(acounter):
                 exec("out['alpha" + str(ai) + "'] = alpha" + str(ai))
+            for xci in range(xccounter):
+                exec("out['xc" + str(xci) + "'] = xc" + str(xci))
             pickle.dump(
                 out,
                 open(

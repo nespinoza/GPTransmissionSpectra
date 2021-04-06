@@ -151,6 +151,7 @@ if not os.path.exists(out_folder):
 
 # 3. If not already done, run code for all PCAs, extract best-fit parameters, model-average them, save them. For this,
 # first check maximum number of samples sampled from posterior from all the fits:
+
 if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
     lnZ = np.zeros(len(comps))
     nmin = np.inf
@@ -209,6 +210,7 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
                 + str(i)
                 + "/."
             )
+
         os.system(
             "mv "
             + out_folder
@@ -232,6 +234,7 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
             + str(i)
             + "/."
         )
+
         fin = open(
             out_folder
             + "/white-light/PCA_"
@@ -289,14 +292,23 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         xccounter = 0
         for vrs in list(posteriors["posterior_samples"].keys()):
             if "xc" in vrs:
-                exec("xc" + str(xccounter) + " = np.array([])")
+                if f"xc{xccounter}" not in locals():
+                    exec(
+                        "xc"
+                        + str(xccounter)
+                        + " = posteriors['posterior_samples']['xc"
+                        + str(xccounter)
+                        + "']"
+                    )
                 xccounter = xccounter + 1
+
         nextract = int(Pmodels[i - 1] * nmin)
         idx_extract = np.random.choice(
             np.arange(len(posteriors["posterior_samples"]["P"])),
             nextract,
             replace=False,
         )
+
         # Extract transit parameters:
         periods = np.append(
             periods, posteriors["posterior_samples"]["P"][idx_extract]
