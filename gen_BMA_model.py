@@ -15,7 +15,7 @@ omegamean = 90.0
 Npoints = 1000 # Number of points in model
 pl, pu = 0, 1
 
-out_wl = f"out_l/WASP50/w50_131219/white-light"
+out_wl = f"out_l/WASP50/w50_161211/white-light"
 
 # load BMA WLC results and lc times
 df_results = pd.read_table(
@@ -99,7 +99,6 @@ x = np.append(t.reshape(len(t), 1), lcmodel.reshape(len(t), 1), axis=1)
 np.savetxt(savepath, x)
 print(f"Saved BMA WLC model to {savepath}")
 
-
 ################
 # BMA DETRENDING
 ################
@@ -132,7 +131,14 @@ comp_model = mmean + np.dot(Xc[idx, :], xc)
 # Transit model
 ###############
 JITTER=(200.0 * 1e-6)**2.0,
-params, m = utils.init_batman(lc_times, law=ld_law)
+params, m = utils.init_batman(t, law=ld_law)
+params.t0 = t0
+params.per = P
+params.rp = p
+params.a = aRs
+params.inc = inc
+params.ecc = ecc
+params.w = omega
 lcmodel = m.light_curve(params)
 model = -2.51 * np.log10(lcmodel)
 
@@ -166,6 +172,7 @@ gp.set_parameter_vector(gp_vector)
 # Detrending
 ############
 residuals = f - (model + comp_model)
+
 pred_mean, pred_var = gp.predict(residuals, X, return_var=True)
 
 detrended_lc = f - (comp_model + pred_mean)
