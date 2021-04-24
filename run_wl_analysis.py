@@ -430,7 +430,9 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
         out, open(out_folder + "/white-light/BMA_posteriors.pkl", "wb")
     )
     fout = open(out_folder + "/white-light/results.dat", "w")
-    fout.write("# Variable \t Value \t SigmaUp \t SigmaDown\n")
+    fout.write(f"# Delta lnZs (in order of cNames, relative to lnZ_max): {lnZ}\n")
+    fout.write(f"# Pmodels: {Pmodels}\n")
+    fout.write("Variable \t Value \t SigmaUp \t SigmaDown\n")
     for variable in list(out.keys()):
         v, vup, vdown = utils.get_quantiles(out[variable])
         fout.write(

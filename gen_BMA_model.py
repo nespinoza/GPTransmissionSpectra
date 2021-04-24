@@ -1,5 +1,6 @@
 import numpy as np
 import batman
+import george
 import utils
 import pandas as pd
 from astropy.constants import G as const_G
@@ -14,14 +15,14 @@ omegamean = 90.0
 Npoints = 1000 # Number of points in model
 pl, pu = 0, 1
 
-out_wl = f"out_st/HATP26/hp26_190313_st/white-light"
+out_wl = f"out_l/WASP50/w50_131219/white-light"
 
 # load BMA WLC results and lc times
 df_results = pd.read_table(
     f"{out_wl}/results.dat",
     sep="\s+",
-    escapechar='#',
-    index_col=" Variable",
+    comment='#',
+    index_col="Variable",
 )
 
 lc_times = np.genfromtxt(f"{out_wl}/lc.dat", unpack=True, usecols=(0))
@@ -97,3 +98,94 @@ savepath = f"{out_wl}/full_model_BMA.dat"
 x = np.append(t.reshape(len(t), 1), lcmodel.reshape(len(t), 1), axis=1)
 np.savetxt(savepath, x)
 print(f"Saved BMA WLC model to {savepath}")
+
+
+################
+# BMA DETRENDING
+################
+BMA = df_results
+# Raw data
+tall, fall, f_index = np.genfromtxt(f"{out_wl}/lc.dat", unpack=True)
+idx = np.where(f_index == 0)[0]
+t, f = tall[idx], fall[idx]
+
+# External params
+data = np.genfromtxt(f"{out_wl}/../eparams.dat")
+X = (data - np.mean(data, axis=0)) / np.std(data, axis=0)
+
+# Comp stars
+data = np.genfromtxt(f"{out_wl}/comps.dat")
+Xc = (data - np.mean(data, axis=0)) / np.std(data, axis=0)
+if len(Xc.shape) != 1:
+    eigenvectors, eigenvalues, PC = utils.classic_PCA(Xc.T)
+    Xc = PC.T
+else:
+    Xc = Xc[:, None]
+
+# Comp star model
+mmean = BMA.at["mmean", "Value"]
+xcs = [xci for xci in BMA.index if "xc" in xci]
+xc = np.array([BMA.at[f"{xci}", "Value"] for xci in xcs])
+comp_model = mmean + np.dot(Xc[idx, :], xc)
+
+###############
+# Transit model
+###############
+JITTER=(200.0 * 1e-6)**2.0,
+params, m = utils.init_batman(lc_times, law=ld_law)
+lcmodel = m.light_curve(params)
+model = -2.51 * np.log10(lcmodel)
+
+#####
+# GP
+#####
+kernel = np.var(f) * george.kernels.Matern32Kernel(
+    np.ones(X[idx, :].shape[1]),
+    ndim=X[idx, :].shape[1],
+    axes=list(range(X[idx, :].shape[1])),
+)
+
+jitter = george.modeling.ConstantModel(np.log(JITTER))
+ljitter = np.log(BMA.at["jitter", "Value"] ** 2)
+max_var = BMA.at["max_var", "Value"]
+alpha_names = [k for k in BMA.index if "alpha" in k]
+alphas = np.array([BMA.at[alpha, "Value"] for alpha in alpha_names])
+
+gp = george.GP(
+    kernel,
+    mean=0.0,
+    fit_mean=False,
+    white_noise=jitter,
+    fit_white_noise=True,
+)
+gp.compute(X[idx, :])
+gp_vector = np.r_[ljitter, np.log(max_var), np.log(1.0 / alphas)]
+gp.set_parameter_vector(gp_vector)
+
+############
+# Detrending
+############
+residuals = f - (model + comp_model)
+pred_mean, pred_var = gp.predict(residuals, X, return_var=True)
+
+detrended_lc = f - (comp_model + pred_mean)
+
+LC_det = 10 ** (-detrended_lc / 2.51)
+LC_det_err = np.sqrt(np.exp(ljitter))
+LC_transit_model = lcmodel
+LC_systematics_model = comp_model + pred_mean
+
+cube =  {
+    "LC_det": LC_det,
+    "LC_det_err": LC_det_err,
+    "LC_transit_model": LC_transit_model,
+    "LC_systematics_model": LC_systematics_model,
+    "comp_model": comp_model,
+    "pred_mean": pred_mean,
+    "t": t,
+    "t0": t0,
+    "P": P,
+}
+
+print("Saving BMA WLC cube")
+np.save(f"{out_wl}/BMA_WLC.npy", cube)
