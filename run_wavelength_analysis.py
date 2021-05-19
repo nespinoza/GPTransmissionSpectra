@@ -105,7 +105,7 @@ for wi in range(nwbins):
                 for j in range(len(comps)):
                     if j != len(comps) - 1:
                         lccompout.write(
-                            "{0:.10f} \t".format(
+                            "{0:.10f},    ".format(
                                 -2.51 * np.log10(data["cLCw"][i, comps[j], wi])
                                 - np.median(
                                     -2.51
@@ -375,13 +375,13 @@ for wi in range(nwbins):
                 ),
             )
             fout = open(out_folder + "/wbin" + str(wi) + "/results.dat", "w")
-            fout.write("# Variable \t Value \t SigmaUp \t SigmaDown\n")
+            fout.write("Variable,    Value,    SigmaUp,    SigmaDown\n")
             for variable in list(out.keys()):
                 if variable != "wbin":
                     v, vup, vdown = utils.get_quantiles(out[variable])
                     fout.write(
                         variable
-                        + " \t {0:.10f} \t {1:.10f} \t {2:.10f}\n".format(
+                        + ",    {0:.10f},    {1:.10f},    {2:.10f}\n".format(
                             v, vup - v, v - vdown
                         )
                     )

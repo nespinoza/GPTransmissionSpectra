@@ -15,25 +15,25 @@ omegamean = 90.0
 Npoints = 1000 # Number of points in model
 pl, pu = 0, 1
 
-out_wl = f"out_l/WASP50/w50_161211/white-light"
+out_wl = f"out_l/WASP50/w50_150927_LDSS3_flat/white-light"
 
 # load BMA WLC results and lc times
-df_results = pd.read_table(
+df_results = pd.read_csv(
     f"{out_wl}/results.dat",
-    sep="\s+",
     comment='#',
     index_col="Variable",
+    skipinitialspace=True,
 )
 
-lc_times = np.genfromtxt(f"{out_wl}/lc.dat", unpack=True, usecols=(0))
+lc_times = np.genfromtxt(f"{out_wl}/lc.dat", delimiter=',', unpack=True, usecols=(0))
 tmin, tmax = np.min(lc_times), np.max(lc_times)
-t = np.linspace(
+t_interp = np.linspace(
     tmin, tmax, Npoints
 )  # interpolate lc times to produce a smooth model later
-transit_lc = np.zeros([len(t), Npoints])
+transit_lc = np.zeros([len(t_interp), Npoints])
 
 # Initialize batman:
-params, m = utils.init_batman(t, law=ld_law)
+params, m = utils.init_batman(t_interp, law=ld_law)
 
 # Build transit model
 mmeani, t0, P, r1, r2, q1 = (
@@ -91,11 +91,11 @@ params.inc = inc
 params.ecc = ecc
 params.w = omega
 
-lcmodel = m.light_curve(params)
+lcmodel_interp = m.light_curve(params)
 
 # write results to table
 savepath = f"{out_wl}/full_model_BMA.dat"
-x = np.append(t.reshape(len(t), 1), lcmodel.reshape(len(t), 1), axis=1)
+x = np.append(t_interp.reshape(len(t_interp), 1), lcmodel_interp.reshape(len(t_interp), 1), axis=1)
 np.savetxt(savepath, x)
 print(f"Saved BMA WLC model to {savepath}")
 
@@ -104,16 +104,16 @@ print(f"Saved BMA WLC model to {savepath}")
 ################
 BMA = df_results
 # Raw data
-tall, fall, f_index = np.genfromtxt(f"{out_wl}/lc.dat", unpack=True)
+tall, fall, f_index = np.genfromtxt(f"{out_wl}/lc.dat", delimiter=',', unpack=True)
 idx = np.where(f_index == 0)[0]
 t, f = tall[idx], fall[idx]
 
 # External params
-data = np.genfromtxt(f"{out_wl}/../eparams.dat")
+data = np.genfromtxt(f"{out_wl}/../eparams.dat", delimiter=',', skip_header=1)
 X = (data - np.mean(data, axis=0)) / np.std(data, axis=0)
 
 # Comp stars
-data = np.genfromtxt(f"{out_wl}/comps.dat")
+data = np.genfromtxt(f"{out_wl}/comps.dat", delimiter=',')
 Xc = (data - np.mean(data, axis=0)) / np.std(data, axis=0)
 if len(Xc.shape) != 1:
     eigenvectors, eigenvalues, PC = utils.classic_PCA(Xc.T)
@@ -190,6 +190,8 @@ cube =  {
     "comp_model": comp_model,
     "pred_mean": pred_mean,
     "t": t,
+    "t_interp": t_interp,
+    "LC_det_model_interp": lcmodel_interp,
     "t0": t0,
     "P": P,
 }

@@ -84,7 +84,7 @@ out_folder = args.outfolder
 # Extract lightcurve and external parameters. When importing external parameters,
 # standarize them and save them on the matrix X:
 lcfilename = args.lcfile
-tall, fall, f_index = np.genfromtxt(lcfilename, unpack=True, usecols=(0, 1, 2))
+tall, fall, f_index = np.genfromtxt(lcfilename, delimiter=',', unpack=True, usecols=(0, 1, 2))
 # Float the times (batman doesn't like non-float 64):
 tall = tall.astype("float64")
 
@@ -93,7 +93,7 @@ t, f = tall[idx], fall[idx]
 
 eparamfilename = args.eparamfile
 eparams = args.eparamtouse
-data = np.genfromtxt(eparamfilename, unpack=True)
+data = np.genfromtxt(eparamfilename, delimiter=',', skip_header=1, unpack=True)
 
 
 def get_quantiles(dist, alpha=0.68, method="median"):
@@ -152,7 +152,7 @@ if eparams != "all":
 compfilename = args.compfile
 if compfilename is not None:
     comps = args.comptouse
-    data = np.genfromtxt(compfilename, unpack=True)
+    data = np.genfromtxt(compfilename, delimiter=',', unpack=True)
     if len(data.shape) > 1:
         for i in range(len(data)):
             x = (data[i] - np.mean(data[i])) / np.sqrt(np.var(data[i]))

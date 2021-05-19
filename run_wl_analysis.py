@@ -99,11 +99,11 @@ if not os.path.exists(out_folder):
         print("Saving eparams...")
         # Save external parameters:
         out_eparam.write(
-            "#Times \t                 Airmass \t Delta Wav \t FWHM \t        Sky Flux \t      Trace Center \n"
+            "Times,    Airmass,    Delta_Wav,    FWHM,    Sky_Flux,    Trace Center\n"
         )
         for i in idx_time:
             out_eparam.write(
-                "{0:.10f} \t {1:.10f} \t {2:.10f} \t {3:.10f} \t {4:.10f} \t {5:.10f} \n".format(
+                "{0:.10f},    {1:.10f},    {2:.10f},    {3:.10f},    {4:.10f},    {5:.10f}\n".format(
                     data["t"][i],
                     data["Z"][i],
                     data["deltas"][target + "_final"][i],
@@ -119,7 +119,7 @@ if not os.path.exists(out_folder):
         lccompout = open(out_folder + "/white-light/comps.dat", "w")
         for i in idx_time:
             lcout.write(
-                "{0:.10f} {1:.10f} 0\n".format(
+                "{0:.10f},    {1:.10f},    0\n".format(
                     data["t"][i],
                     -2.51 * np.log10(data["oLC"][i])
                     - np.median(-2.51 * np.log10(data["oLC"][idx_time])),
@@ -128,7 +128,7 @@ if not os.path.exists(out_folder):
             for j in range(len(comps)):
                 if j != len(comps) - 1:
                     lccompout.write(
-                        "{0:.10f} \t".format(
+                        "{0:.10f},    ".format(
                             -2.51 * np.log10(data["cLC"][i, comps[j]])
                             - np.median(
                                 -2.51
@@ -432,12 +432,12 @@ if not os.path.exists(out_folder + "/white-light/BMA_posteriors.pkl"):
     fout = open(out_folder + "/white-light/results.dat", "w")
     fout.write(f"# Delta lnZs (in order of cNames, relative to lnZ_max): {lnZ}\n")
     fout.write(f"# Pmodels: {Pmodels}\n")
-    fout.write("Variable \t Value \t SigmaUp \t SigmaDown\n")
+    fout.write("Variable,    Value,    SigmaUp,    SigmaDown\n")
     for variable in list(out.keys()):
         v, vup, vdown = utils.get_quantiles(out[variable])
         fout.write(
             variable
-            + " \t {0:.10f} \t {1:.10f} \t {2:.10f}\n".format(
+            + ",    {0:.10f},    {1:.10f},    {2:.10f}\n".format(
                 v, vup - v, v - vdown
             )
         )
