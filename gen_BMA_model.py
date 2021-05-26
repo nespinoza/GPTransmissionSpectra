@@ -15,7 +15,7 @@ omegamean = 90.0
 Npoints = 1000 # Number of points in model
 pl, pu = 0, 1
 
-out_wl = f"out_l/WASP50/w50_150927_LDSS3_flat/white-light"
+out_wl = f"out_l/WASP50/w50_150927_IMACS/white-light"
 
 # load BMA WLC results and lc times
 df_results = pd.read_csv(

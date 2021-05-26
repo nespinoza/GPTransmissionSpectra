@@ -148,6 +148,9 @@ if not os.path.exists(out_folder):
                     )
         lcout.close()
         lccompout.close()
+    else:
+        # Save non-IMACS wl_options.dat file
+        shutil.copy2(ofile + ".py", out_folder + "/white-light")
 
 # 3. If not already done, run code for all PCAs, extract best-fit parameters, model-average them, save them. For this,
 # first check maximum number of samples sampled from posterior from all the fits:

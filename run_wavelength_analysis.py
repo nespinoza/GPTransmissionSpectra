@@ -43,13 +43,14 @@ print("Loaded options for:", datafile)
 target, pfilename = datafile.split("/")
 out_folder = f"{out_folder_base}/{datafile.split('.')[0]}/wavelength"
 out_ofolder = f"{out_folder_base}/{datafile.split('.')[0]}"
-Path(out_folder).mkdir(parents=True)
+Path(out_folder).mkdir(parents=True, exist_ok=True)
 if not nopickle:
     data = pickle.load(open(datafile, "rb"))
 else:
     data = {}
-    t, m1lc = np.loadtxt(
-        "outputs/" + datafile.split(".")[0] + "/white-light/lc.dat",
+    t, m1lc = np.genfromtxt(
+        f"{out_folder_base}/" + datafile.split(".")[0] + "/white-light/lc.dat",
+        delimiter=',',
         unpack=True,
         usecols=(0, 1),
     )
@@ -94,7 +95,7 @@ for wi in range(nwbins):
             )
             for i in idx_time:
                 lcout.write(
-                    "{0:.10f} {1:.10f} 0\n".format(
+                    "{0:.10f},    {1:.10f},    0\n".format(
                         data["t"][i],
                         -2.51 * np.log10(data["oLCw"][i, wi])
                         - np.median(
