@@ -314,6 +314,7 @@ for wi in all_wbins:
         max_GPvariance = np.array([])
         # Check how many alphas were fitted:
         acounter = 0
+        print(posteriors.keys())
         for vrs in list(posteriors["posterior_samples"].keys()):
             if "alpha" in vrs:
                 exec("alpha" + str(acounter) + " = np.array([])")
@@ -333,6 +334,20 @@ for wi in all_wbins:
             )
             posteriors = pickle.load(fin)
             fin.close()
+            # Check how many comp star coefficents were fitted:
+            xccounter = 0
+            for vrs in list(posteriors["posterior_samples"].keys()):
+                if "xc" in vrs:
+                    if f"xc{xccounter}" not in locals():
+                        exec(
+                            "xc"
+                            + str(xccounter)
+                            + " = posteriors['posterior_samples']['xc"
+                            + str(xccounter)
+                            + "']"
+                        )
+                    xccounter = xccounter + 1
+
             nextract = int(Pmodels[i - 1] * nmin)
             idx_extract = np.random.choice(
                 np.arange(len(posteriors["posterior_samples"]["p"])),
