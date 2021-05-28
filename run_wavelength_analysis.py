@@ -58,7 +58,6 @@ else:
     import glob
 
     binfolders = glob.glob(out_folder + "/wbin*")
-    print(binfolders)
     data["wbins"] = np.arange(len(binfolders))
     data["oLCw"] = np.random.uniform(1, 10, [3, len(binfolders)])
 # 0. Save wavelength_options.dat file:
