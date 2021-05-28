@@ -11,11 +11,8 @@ parser = argparse.ArgumentParser()
 
 # This parses in the option file:
 parser.add_argument("-ofile", default=None)
-parser.add_argument("--CMC", dest="CMC", action="store_true")
-parser.set_defaults(CMC=False)
 
 args = parser.parse_args()
-CMC = args.CMC
 ofile = args.ofile
 
 # Read input file:
@@ -26,11 +23,7 @@ datafile = c.datafile
 target, pfilename = datafile.split("/")
 
 outfold = c.out_folder_base
-
-if not CMC:
-    out_folder = ("%s/" + datafile.split(".")[0] + "/wavelength") % outfold
-else:
-    out_folder = ("%s/" + datafile.split(".")[0] + "/wavelength-cmc") % outfold
+out_folder = ("%s/" + datafile.split(".")[0] + "/wavelength") % outfold
 out_ofolder = ("%s/" + datafile.split(".")[0]) % outfold
 
 print(out_folder)
@@ -150,10 +143,7 @@ for wi in wis:
         print("No data (yet)")
 
 # Save to file
-if not CMC:
-    fname = "transpec.csv"
-else:
-    fname = "transpec_cmc.csv"
+fname = "transpec.csv"
 df = pd.DataFrame(data, columns=columns)
 df.iloc[:, :2].apply(lambda x: round(x, 2))
 df.iloc[:, 2:].apply(lambda x: round(x, 10))
