@@ -20,6 +20,7 @@ USAGE ---
 
 To use the code is simple:
 
+<<<<<<< HEAD
 1. *(a)* If the input is going to be given by the user with the tepspec input
 format, put the .pkl file of outputs in a folder which has the same name as the
 target in the pickle file. Let's assume the name of the target in my pickle
@@ -43,6 +44,21 @@ another file called `comps.dat` where you input the (mean-substracted)
 as `wbin0`, `wbin1`, etc., and inside save the (wavelength-dependant)
 lightcurves of the target and comparison stars in the same format as was done
 in the `white-light` folder.
+=======
+1. *(a)* If the input is going to be given by the user with the tepspec input format, put the .pkl file of outputs in a folder which has the same 
+   name as the target in the pickle file. Let's assume the name of the target in my pickle file is `WASP19`. Then, my pickle file (say, named 
+   `w19_140322.pkl`) should be in the folder `WASP19/w19_140322.pkl`. *(b)* If you have a set of lightcurves and external parameters, first 
+   create a folder called "outputs". Inside it, create a folder with the name of your target (in our case, `WASP19`). Inside this folder, 
+   create different folders for different datasets (e.g., different nights) of the same target --- in the case of our example, we should create 
+   a folder called `w19_140322`. Inside each of these, put your external parameters in a file called eparams.dat, so that each row is the value 
+   of the external parameters at different times, and each (space separated) column is a different external parameter. Inside this folder, create 
+   two extra folders: a folder called `white-light` and a folder called `wavelength`. Inside the `white-light` folder, create a file called 
+   `lc.dat` which contains the data for the target lightcurve: in its first column the time, the second the (median-substracted) *magnitude* 
+   (-2.51 x log10(flux)) and the third column contains zeros. Create another file called `comps.dat` where you input the (median-substracted) 
+   *magnitude* of the comparison stars; one comparison star per column. Insite the `wavelength` folder, create one different folder for each 
+   wavelength bin named as `wbin0`, `wbin1`, etc., and inside save the (wavelength-dependant) lightcurves of the target and comparison stars 
+   in the same format as was done in the `white-light` folder. 
+>>>>>>> GPTS/master
 
 2. Create an options file for the white-light lightcurve (see the
 `wl_options.dat` file for an example with WASP-19, `wl_options_h5.dat` for
@@ -74,10 +90,11 @@ the detrended lightcurve and fourth the best-fit transit model) and a
 two files to generate the full model fitted to the data.
 
 5. Use the `results.dat` to create an options file for the wavelength-dependant
-fits, where every parameter of the transit will be fixed except for the
+   fits, where every parameter of the transit will be fixed except for the
 limb-darkening parameters and `p=rp/rs` (and, of course, the GP and PCA
 components of the fit). See the `wavelength_options_w19.dat` file for an
-example.
+example. Note: if analysing multiple nights, consider using `results.dat`
+values averaged over all nights.
 
 6. Run the code by doing either `python run_wavelength_analysis.py -ofile
 yourNEWoptionsfile.dat` if you want to perform PCA + GP on each wavelength
