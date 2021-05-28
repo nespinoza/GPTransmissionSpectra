@@ -54,7 +54,8 @@ To use the code is simple:
 
 5. Use the `results.dat` to create an options file for the wavelength-dependant fits, where every parameter of the transit will be fixed 
    except for the limb-darkening parameters and `p=rp/rs` (and, of course, the GP and PCA components of the fit). See the 
-   `wavelength_options_w19.dat` file for an example.
+   `wavelength_options_w19.dat` file for an example. Note: if analysing multiple nights, consider using `results.dat` values averaged
+   over all nights.
 
 6. Run the code by doing either `python run_wavelength_analysis.py -ofile yourNEWoptionsfile.dat` if you want to perform PCA + GP on each 
    wavelength range, or `python run_wavelength_cmc_analysis.py -ofile yourNEWoptionsfile.dat -wofile youroptionsfile.dat` if you want to 
