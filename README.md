@@ -26,8 +26,8 @@ To use the code is simple:
    a folder called `w19_140322`. Inside each of these, put your external parameters in a file called eparams.dat, so that each row is the value 
    of the external parameters at different times, and each (space separated) column is a different external parameter. Inside this folder, create 
    two extra folders: a folder called `white-light` and a folder called `wavelength`. Inside the `white-light` folder, create a file called 
-   `lc.dat` which contains the data for the target lightcurve: in its first column the time, the second the (mean-substracted) *magnitude* 
-   (-2.51 x log10(flux)) and the third column contains zeros. Create another file called `comps.dat` where you input the (mean-substracted) 
+   `lc.dat` which contains the data for the target lightcurve: in its first column the time, the second the (median-substracted) *magnitude* 
+   (-2.51 x log10(flux)) and the third column contains zeros. Create another file called `comps.dat` where you input the (median-substracted) 
    *magnitude* of the comparison stars; one comparison star per column. Insite the `wavelength` folder, create one different folder for each 
    wavelength bin named as `wbin0`, `wbin1`, etc., and inside save the (wavelength-dependant) lightcurves of the target and comparison stars 
    in the same format as was done in the `white-light` folder. 
