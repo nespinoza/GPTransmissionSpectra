@@ -46,6 +46,17 @@ out_ofolder = f"{out_folder_base}/{datafile.split('.')[0]}"
 Path(out_folder).mkdir(parents=True, exist_ok=True)
 if not nopickle:
     data = pickle.load(open(datafile, "rb"))
+    # Generate idx_time, number of bins:
+    if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
+        raise ValueError("Only idx_time or bad_idx_time can be specified")
+    elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
+        exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
+    else:
+        if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
+            bad_idx_time = []
+        else:
+            bad_idx_time = utils._bad_idxs(c.bad_idx_time)
+        idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
 else:
     data = {}
     t, m1lc = np.genfromtxt(
@@ -62,17 +73,6 @@ else:
     data["oLCw"] = np.random.uniform(1, 10, [3, len(binfolders)])
 # 0. Save wavelength_options.dat file:
 shutil.copy2(ofile + ".py", out_folder)
-# Generate idx_time, number of bins:
-if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
-    raise ValueError("Only idx_time or bad_idx_time can be specified")
-elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
-    exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
-else:
-    if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
-        bad_idx_time = []
-    else:
-        bad_idx_time = utils._bad_idxs(c.bad_idx_time)
-    idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
 nwbins = len(data["wbins"])
 for wi in range(nwbins):
     if (

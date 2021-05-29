@@ -66,6 +66,17 @@ if not nopickle:
     c1lc = -2.51 * np.log10(data["cLC"][:, all_comps[0]]) - np.median(
         -2.51 * np.log10(data["cLC"][:, all_comps[0]])
     )
+    # Generate idx_time, number of bins:
+    if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
+        raise ValueError("Only idx_time or bad_idx_time can be specified")
+    elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
+        exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
+    else:
+        if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
+            bad_idx_time = []
+        else:
+            bad_idx_time = utils._bad_idxs(c.bad_idx_time)
+        idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
 else:
     data = {}
     t, m1lc = np.genfromtxt(
@@ -120,17 +131,6 @@ white_light_lcmodel = utils.get_transit_model(
 
 cmc = m1lc - c1lc + 2.51 * np.log10(white_light_lcmodel)
 
-# Generate idx_time, number of bins:
-if hasattr(c, "idx_time") and hasattr(c, "bad_idx_time"):
-    raise ValueError("Only idx_time or bad_idx_time can be specified")
-elif hasattr(c, "idx_time") and not hasattr(c, "bad_idx_time"):
-    exec('idx_time = np.arange(len(data["t"]))' + c.idx_time)
-else:
-    if c.bad_idx_time == "None" or c.bad_idx_time == "[]":
-        bad_idx_time = []
-    else:
-        bad_idx_time = utils._bad_idxs(c.bad_idx_time)
-    idx_time = np.delete(np.arange(len(data["t"])), bad_idx_time)
 nwbins = len(data["wbins"])
 all_wbins = []
 for wi in range(nwbins):
