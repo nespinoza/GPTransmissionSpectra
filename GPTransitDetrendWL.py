@@ -785,16 +785,7 @@ for i in idx_samples:
 fileout = open("detrended_lc.dat", "w")
 file_model_out = open("model_lc.dat", "w")
 fileout.write("# Time   DetFlux   DetFluxErr   Model\n")
-file_model_out.write(
-    "# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n"
-)
-for i in range(detrended_lc.shape[0]):
-    val = np.median(detrended_lc[i, :])
-    val_err = np.median(detrended_lc_err[i, :])
-    dist = 10 ** (-np.random.normal(val, val_err, 1000) / 2.51)
-file_model_out.write(
-    "# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n"
-)
+file_model_out.write("# Time   Mag   ModelMag   ModelMagUp68   ModelMagDown68   ModelMagUp95   ModelMagDown95\n")
 for i in range(detrended_lc.shape[0]):
     val = np.median(detrended_lc[i, :])
     val_err = np.median(detrended_lc_err[i, :])
