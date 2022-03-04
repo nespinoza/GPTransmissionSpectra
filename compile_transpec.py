@@ -147,4 +147,6 @@ fname = "transpec.csv"
 df = pd.DataFrame(data, columns=columns)
 df.iloc[:, :2].apply(lambda x: round(x, 2))
 df.iloc[:, 2:].apply(lambda x: round(x, 10))
-df.to_csv(f"{out_ofolder}/{fname}", index=False)
+fpath = f"{out_ofolder}/{fname}"
+df.to_csv(fpath, index=False)
+print(f"Saved to: {fpath}")

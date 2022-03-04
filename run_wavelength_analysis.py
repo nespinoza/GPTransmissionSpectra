@@ -132,7 +132,7 @@ for wi in range(nwbins):
             lccompout.close()
 
 for wi in range(nwbins):
-    print("Working on wbin ", wi, "...")
+    print(f"Working on wbin {wi+1}/{nwbins} ...")
     if (
         np.mean(data["oLCw"][:, wi]) != 0.0
         and len(np.where(data["oLCw"][:, wi] < 0)[0]) < 1
