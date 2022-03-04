@@ -15,7 +15,7 @@ omegamean = 90.0
 Npoints = 1000 # Number of points in model
 pl, pu = 0, 1
 
-out_wl = f"out_l/WASP50/w50_150927_IMACS/white-light"
+out_wl = f"out_b/WASP50/w50_161211_sp_IMACS_b/white-light"
 
 # load BMA WLC results and lc times
 df_results = pd.read_csv(
@@ -176,9 +176,10 @@ residuals = f - (model + comp_model)
 pred_mean, pred_var = gp.predict(residuals, X, return_var=True)
 
 detrended_lc = f - (comp_model + pred_mean)
+detrended_lc_err = np.sqrt(np.ones(len(f))*np.exp(ljitter))
 
 LC_det = 10 ** (-detrended_lc / 2.51)
-LC_det_err = np.sqrt(np.exp(ljitter))
+LC_det_err = detrended_lc_err
 LC_transit_model = lcmodel
 LC_systematics_model = comp_model + pred_mean
 
